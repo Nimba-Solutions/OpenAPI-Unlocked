@@ -1,14 +1,14 @@
-minimum_cumulusci_version: '3.78.0'
+minimum_cumulusci_version: "3.78.0"
 project:
     name: OpenAPI-Unlocked
     package:
         name: OpenAPI-Unlocked
-        api_version: '63.0'
+        api_version: "63.0"
     git:
-        default_branch: 'main'
-        prefix_feature: 'feature/'
-        prefix_beta: 'beta/'
-        prefix_release: 'release/'
+        default_branch: "main"
+        prefix_feature: "feature/"
+        prefix_beta: "beta/"
+        prefix_release: "release/"
     source_format: sfdx
 
 tasks:
@@ -27,7 +27,6 @@ tasks:
         options:
             required_org_code_coverage_percent: 75
 
-
     # Digital Experience Setup Tasks
     create_experience:
         group: "experience"
@@ -35,8 +34,8 @@ tasks:
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         options:
             template: Build Your Own
-            name: api
-            url_path_prefix: api
+            name: OpenAPI-Unlocked
+            url_path_prefix: openapi
             timeout: 60000
             skip_existing: true
 
@@ -88,14 +87,6 @@ tasks:
             data_files:
                 - "unpackaged/config/users/guest.json"
 
-    update_admin_profile:
-        group: "experience"
-        description: Updates the admin profile with necessary permissions
-        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
-        options:
-            data_files:
-                - "unpackaged/config/profiles/admin.json"
-
 flows:
     # Digital Experience Setup Flows
     make_experience:
@@ -131,4 +122,3 @@ flows:
                 task: unzip_experience_bundle
             3:
                 task: move_experience_bundle
-
