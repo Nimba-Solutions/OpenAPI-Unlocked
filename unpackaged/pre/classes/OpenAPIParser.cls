@@ -57,7 +57,7 @@ public with sharing class OpenAPIParser {
         Map<String, Object> paths = new Map<String, Object>();
         
         // Find all method documentation blocks
-        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n\\s*\\*\\s*@openapi\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
+        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
         Matcher methodMatcher = methodPattern.matcher(classBody);
         
         System.debug('Searching for methods with pattern: ' + methodPattern.pattern());
@@ -90,43 +90,71 @@ public with sharing class OpenAPIParser {
     private static Map<String, Object> parseMethod(String doc) {
         Map<String, Object> methodInfo = new Map<String, Object>();
         
-        // Extract operation ID
-        Pattern opPattern = Pattern.compile('@operation\\s+(\\w+)');
-        Matcher opMatcher = opPattern.matcher(doc);
-        if (opMatcher.find()) {
-            methodInfo.put('operationId', opMatcher.group(1));
-            System.debug('Found operation ID: ' + opMatcher.group(1));
-        }
-        
-        // Extract summary
-        Pattern summaryPattern = Pattern.compile('@summary\\s+(.*?)(?=\\n|$)');
-        Matcher summaryMatcher = summaryPattern.matcher(doc);
-        if (summaryMatcher.find()) {
-            methodInfo.put('summary', summaryMatcher.group(1).trim());
-            System.debug('Found summary: ' + summaryMatcher.group(1).trim());
-        }
-        
-        // Extract description
-        Pattern descPattern = Pattern.compile('@description\\s+(.*?)(?=\\n|$)');
-        Matcher descMatcher = descPattern.matcher(doc);
-        if (descMatcher.find()) {
-            methodInfo.put('description', descMatcher.group(1).trim());
-            System.debug('Found description: ' + descMatcher.group(1).trim());
-        }
+        // Extract basic method info
+        methodInfo.put('operationId', extractOperationId(doc));
+        methodInfo.put('summary', extractSummary(doc));
+        methodInfo.put('description', extractDescription(doc));
         
         // Extract tags
-        List<String> tags = new List<String>();
-        Pattern tagPattern = Pattern.compile('@tag\\s+(.*?)(?=\\n|$)');
-        Matcher tagMatcher = tagPattern.matcher(doc);
-        while (tagMatcher.find()) {
-            tags.add(tagMatcher.group(1).trim());
-            System.debug('Found tag: ' + tagMatcher.group(1).trim());
-        }
+        List<String> tags = extractTags(doc);
         if (!tags.isEmpty()) {
             methodInfo.put('tags', tags);
         }
         
         // Extract security requirements
+        List<Map<String, List<String>>> security = extractSecurity(doc);
+        if (!security.isEmpty()) {
+            methodInfo.put('security', security);
+        }
+        
+        // Extract parameters
+        List<Map<String, Object>> parameters = extractParameters(doc);
+        if (!parameters.isEmpty()) {
+            methodInfo.put('parameters', parameters);
+        }
+        
+        // Extract request body
+        Map<String, Object> requestBody = extractRequestBody(doc);
+        if (!requestBody.isEmpty()) {
+            methodInfo.put('requestBody', requestBody);
+        }
+        
+        // Extract responses
+        Map<String, Object> responses = extractResponses(doc);
+        methodInfo.put('responses', responses);
+        
+        return methodInfo;
+    }
+    
+    private static String extractOperationId(String doc) {
+        Pattern opPattern = Pattern.compile('@operation\\s+(\\w+)');
+        Matcher opMatcher = opPattern.matcher(doc);
+        return opMatcher.find() ? opMatcher.group(1) : null;
+    }
+    
+    private static String extractSummary(String doc) {
+        Pattern summaryPattern = Pattern.compile('@summary\\s+(.*?)(?=\\n|$)');
+        Matcher summaryMatcher = summaryPattern.matcher(doc);
+        return summaryMatcher.find() ? summaryMatcher.group(1).trim() : null;
+    }
+    
+    private static String extractDescription(String doc) {
+        Pattern descPattern = Pattern.compile('@description\\s+(.*?)(?=\\n|$)');
+        Matcher descMatcher = descPattern.matcher(doc);
+        return descMatcher.find() ? descMatcher.group(1).trim() : null;
+    }
+    
+    private static List<String> extractTags(String doc) {
+        List<String> tags = new List<String>();
+        Pattern tagPattern = Pattern.compile('@tag\\s+(.*?)(?=\\n|$)');
+        Matcher tagMatcher = tagPattern.matcher(doc);
+        while (tagMatcher.find()) {
+            tags.add(tagMatcher.group(1).trim());
+        }
+        return tags;
+    }
+    
+    private static List<Map<String, List<String>>> extractSecurity(String doc) {
         List<Map<String, List<String>>> security = new List<Map<String, List<String>>>();
         Pattern securityPattern = Pattern.compile('@security\\s+(\\w+)(?:\\s+(.*?))?(?=\\n|$)');
         Matcher securityMatcher = securityPattern.matcher(doc);
@@ -140,13 +168,11 @@ public with sharing class OpenAPIParser {
             }
             securityItem.put(scheme, scopeList);
             security.add(securityItem);
-            System.debug('Found security: ' + scheme + ' with scopes: ' + scopeList);
         }
-        if (!security.isEmpty()) {
-            methodInfo.put('security', security);
-        }
-        
-        // Extract parameters
+        return security;
+    }
+    
+    private static List<Map<String, Object>> extractParameters(String doc) {
         List<Map<String, Object>> parameters = new List<Map<String, Object>>();
         Pattern paramPattern = Pattern.compile('@param\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(.*?)(?=\\n|$)');
         Matcher paramMatcher = paramPattern.matcher(doc);
@@ -159,32 +185,76 @@ public with sharing class OpenAPIParser {
                 'required' => true
             };
             parameters.add(param);
-            System.debug('Found parameter: ' + JSON.serializePretty(param));
         }
-        if (!parameters.isEmpty()) {
-            methodInfo.put('parameters', parameters);
-        }
-        
-        // Extract request body
+        return parameters;
+    }
+    
+    private static Map<String, Object> extractRequestBody(String doc) {
+        Map<String, Object> requestBody = new Map<String, Object>();
         Pattern requestBodyPattern = Pattern.compile('@requestBody\\s+\\{(.*?)\\}(?=\\n|$)');
         Matcher requestBodyMatcher = requestBodyPattern.matcher(doc);
         if (requestBodyMatcher.find()) {
             String requestBodyJson = requestBodyMatcher.group(1);
-            Map<String, Object> requestBody = (Map<String, Object>)JSON.deserializeUntyped('{' + requestBodyJson + '}');
-            methodInfo.put('requestBody', requestBody);
-            System.debug('Found request body: ' + JSON.serializePretty(requestBody));
+            Map<String, Object> parsedJson = parseJsonLikeStructure(requestBodyJson);
+            if (parsedJson.containsKey('content')) {
+                requestBody = parsedJson;
+            } else {
+                requestBody.put('content', new Map<String, Object>{
+                    'application/json' => new Map<String, Object>{
+                        'schema' => parsedJson
+                    }
+                });
+            }
         }
-        
-        // Extract responses
+        return requestBody;
+    }
+    
+    private static Map<String, Object> parseJsonLikeStructure(String json) {
+        Map<String, Object> result = new Map<String, Object>();
+        Pattern fieldPattern = Pattern.compile('(\\w+):\\s*(?:"([^"]*)"|(\\{[^}]*\\})|([\\w:]+))');
+        Matcher fieldMatcher = fieldPattern.matcher(json);
+        while (fieldMatcher.find()) {
+            String key = fieldMatcher.group(1);
+            String value = fieldMatcher.group(2);  // quoted string
+            String nestedJson = fieldMatcher.group(3);  // nested object
+            String rawValue = fieldMatcher.group(4);  // unquoted value
+            
+            if (value != null) {
+                result.put(key, value);
+            } else if (nestedJson != null) {
+                // Remove outer braces
+                nestedJson = nestedJson.substring(1, nestedJson.length() - 1);
+                result.put(key, parseJsonLikeStructure(nestedJson));
+            } else if (rawValue != null) {
+                if (rawValue.equals('true')) result.put(key, true);
+                else if (rawValue.equals('false')) result.put(key, false);
+                else result.put(key, rawValue);
+            }
+        }
+        return result;
+    }
+    
+    private static Map<String, Object> extractResponses(String doc) {
         Map<String, Object> responses = new Map<String, Object>();
         Pattern responsePattern = Pattern.compile('@response\\s+(\\d+)\\s+\\{(.*?)\\}(?=\\n|$)');
         Matcher responseMatcher = responsePattern.matcher(doc);
         while (responseMatcher.find()) {
             String code = responseMatcher.group(1);
             String responseJson = responseMatcher.group(2);
-            Map<String, Object> response = (Map<String, Object>)JSON.deserializeUntyped('{' + responseJson + '}');
             
-            // If type is specified, add openApiSchema
+            // Parse the JSON-like format into a Map
+            Map<String, Object> response = new Map<String, Object>();
+            Pattern fieldPattern = Pattern.compile('(\\w+):\\s*"([^"]*)"|(\\w+):\\s*\\{(.*?)\\}|(\\w+):\\s*(true|false)');
+            Matcher fieldMatcher = fieldPattern.matcher(responseJson);
+            while (fieldMatcher.find()) {
+                String key = fieldMatcher.group(1) != null ? fieldMatcher.group(1) : 
+                           (fieldMatcher.group(3) != null ? fieldMatcher.group(3) : fieldMatcher.group(5));
+                String value = fieldMatcher.group(2) != null ? fieldMatcher.group(2) : 
+                             (fieldMatcher.group(4) != null ? fieldMatcher.group(4) : fieldMatcher.group(6));
+                response.put(key, value);
+            }
+            
+            // If type is specified, add schema
             if (response.containsKey('type')) {
                 String type = (String)response.get('type');
                 Map<String, Object> openApiSchema = new Map<String, Object>();
@@ -197,7 +267,7 @@ public with sharing class OpenAPIParser {
                     if (!results.isEmpty()) {
                         Schema.DescribeSObjectResult describe = results[0];
                         
-                        // Build openApiSchema properties
+                        // Build schema properties
                         Map<String, Object> properties = new Map<String, Object>();
                         for (Schema.SObjectField field : describe.fields.getMap().values()) {
                             Schema.DescribeFieldResult fieldDescribe = field.getDescribe();
@@ -225,7 +295,7 @@ public with sharing class OpenAPIParser {
                         });
                     }
                 } catch (Exception e) {
-                    System.debug('Error generating openapi schema for type ' + type + ': ' + e.getMessage());
+                    System.debug('Error generating schema for type ' + type + ': ' + e.getMessage());
                 }
                 
                 // Remove type as it's not part of OpenAPI spec
@@ -233,12 +303,8 @@ public with sharing class OpenAPIParser {
             }
             
             responses.put(code, response);
-            System.debug('Found response: ' + code + ' - ' + JSON.serializePretty(response));
         }
-        
-        methodInfo.put('responses', responses);
-        
-        return methodInfo;
+        return responses;
     }
     
     private static String getOpenAPIType(Schema.DisplayType fieldType) {
@@ -295,11 +361,11 @@ public with sharing class OpenAPIParser {
         // Create or update the Static Resource
         HttpRequest req = new HttpRequest();
         if (resourceId != null) {
-            // Update existing
+            // Update existing resource
             req.setEndpoint(URL.getOrgDomainUrl().toExternalForm() + '/services/data/v62.0/tooling/sobjects/StaticResource/' + resourceId);
             req.setMethod('PATCH');
         } else {
-            // Create new
+            // Create new resource
             req.setEndpoint(URL.getOrgDomainUrl().toExternalForm() + '/services/data/v62.0/tooling/sobjects/StaticResource');
             req.setMethod('POST');
         }
@@ -312,9 +378,7 @@ public with sharing class OpenAPIParser {
             'Name' => resourceName,
             'ContentType' => 'application/json',
             'CacheControl' => 'Public',
-            'Metadata' => new Map<String, Object>{
-                'content' => jsonSpec
-            }
+            'Body' => EncodingUtil.base64Encode(Blob.valueOf(jsonSpec))
         };
         
         req.setBody(JSON.serialize(body));
@@ -406,8 +470,8 @@ public with sharing class OpenAPIParser {
         System.debug('Combined OpenAPI specification: ' + JSON.serializePretty(combinedSpec));
         
         // Store as Static Resource
-        storeAsStaticResource(combinedSpec, 'openapi_spec');
+        storeAsStaticResource(combinedSpec, 'OPENAPI_SPEC');
         
         return combinedSpec;
     }
-} 
+}
