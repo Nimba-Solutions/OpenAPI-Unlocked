@@ -1,0 +1,24 @@
+{
+    "allOrNone": false,
+    "compositeRequest": [
+        {
+            "method": "GET",
+            "url": "/services/data/v60.0/query/?q=SELECT+Id+FROM+PermissionSet+WHERE+Name+IN+('OpenAPI_Guest_API')+ORDER+BY+Name",
+            "referenceId": "permissionSets"
+        },
+        {
+            "method": "GET",
+            "url": "/services/data/v60.0/query/?q=SELECT+Id+FROM+User+WHERE+Profile.Name+IN+('api Profile')+LIMIT+1",
+            "referenceId": "guest_user"
+        },
+        {
+            "method": "POST",
+            "url": "/services/data/v60.0/sobjects/PermissionSetAssignment",
+            "referenceId": "guest_user_permission_set_assignment",
+            "body": {
+                "PermissionSetId": "@{permissionSets.records[0].Id}",
+                "AssigneeId": "@{guest_user.records[0].Id}"
+            }
+        }
+    ]
+}

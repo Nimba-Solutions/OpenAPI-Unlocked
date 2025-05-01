@@ -1,0 +1,15 @@
+{
+    "compositeRequest": [
+        {
+            "method": "PATCH",
+            "url": "/services/data/v63.0/sobjects/Profile/@{adminProfile.Id}",
+            "referenceId": "adminProfileUpdate",
+            "body": {
+                "PermissionsApiEnabled": true,
+                "PermissionsManageUsers": true,
+                "PermissionsCustomizeApplication": true,
+                "PermissionsModifyAllData": true
+            }
+        }
+    ]
+}

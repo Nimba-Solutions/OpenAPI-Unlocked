@@ -26,3 +26,109 @@ tasks:
     run_tests:
         options:
             required_org_code_coverage_percent: 75
+
+
+    # Digital Experience Setup Tasks
+    create_experience:
+        group: "experience"
+        description: "Creates a Digital Experience site for API documentation"
+        class_path: cumulusci.tasks.salesforce.CreateCommunity
+        options:
+            template: Build Your Own
+            name: api
+            url_path_prefix: api
+            timeout: 60000
+            skip_existing: true
+
+    publish_experience:
+        group: "experience"
+        description: Publishes the API Documentation Experience Site
+        class_path: cumulusci.tasks.salesforce.PublishCommunity
+        options:
+            name: api
+
+    create_experience_owner:
+        group: "experience"
+        description: Creates the Experience Cloud site owner
+        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+        options:
+            data_files:
+                - "unpackaged/config/users/owner.json"
+
+    retrieve_experience_bundle:
+        description: Retrieve Experience Bundle
+        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+        options:
+            command: "force:mdapi:retrieve -k unpackaged/config/experience/package.xml -r unpackaged/config/experience/temp --json --zipfilename experience.zip"
+
+    unzip_experience_bundle:
+        description: Unzip Experience Bundle
+        class_path: cumulusci.tasks.command.Command
+        group: Experience
+        options:
+            command: "unzip -o unpackaged/config/experience/temp/experience.zip -d unpackaged/config/experience/temp && rm -R unpackaged/config/experience/temp/experience.zip"
+
+    move_experience_bundle:
+        description: Move Experience Bundle to src directory
+        class_path: cumulusci.tasks.command.Command
+        group: Experience
+        options:
+            command: "mv unpackaged/config/experience/temp/unpackaged/experiences unpackaged/config/experience/src/ && rm -R unpackaged/config/experience/temp"
+
+    deploy_experience_cloud:
+        class_path: cumulusci.tasks.salesforce.Deploy
+        options:
+            path: "unpackaged/config/experience/src"
+
+    assign_api_guest_user_permission_set:
+        group: "experience"
+        description: Assigns necessary permissions to the guest user
+        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+        options:
+            data_files:
+                - "unpackaged/config/users/guest.json"
+
+    update_admin_profile:
+        group: "experience"
+        description: Updates the admin profile with necessary permissions
+        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+        options:
+            data_files:
+                - "unpackaged/config/profiles/admin.json"
+
+flows:
+    # Digital Experience Setup Flows
+    make_experience:
+        steps:
+            1:
+                task: create_experience
+            2:
+                task: create_experience_owner
+            3:
+                task: update_admin_profile
+            4:
+                task: deploy_experience_cloud
+            5:
+                task: publish_experience
+            6:
+                task: assign_api_guest_user_permission_set
+
+    deploy_experience:
+        steps:
+            1:
+                task: create_experience
+            2:
+                task: deploy_experience_cloud
+            3:
+                task: publish_experience
+
+    # Digital Experience Fetch Flows
+    fetch_experience:
+        steps:
+            1:
+                task: retrieve_experience_bundle
+            2:
+                task: unzip_experience_bundle
+            3:
+                task: move_experience_bundle
+

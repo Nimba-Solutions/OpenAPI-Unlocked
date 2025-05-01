@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="metadata-default"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>metadata-default</description>
+    <rule ref="category/xml/bestpractices.xml/MissingEncoding" />
+
+    <!-- FLOW RULES -->
+    <rule name="DMLStatementInFlowLoop" language="xml" message="DML Operations shouldn't be done inside of Flow loops" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='Flow']/*[local-name()='loops']//*[local-name()='targetReference']
+                    [not(ancestor::*[local-name()='noMoreValuesConnector'])]
+                    [text()=//*[local-name()='Flow']/(*[local-name()='recordCreates']|*[local-name()='recordDeletes']|*[local-name()='recordUpdates'])/*[local-name()='name']/text()]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- PERMISSION RULES -->
+    <rule name="ViewSetupByNonSysAdmins" language="xml" message="Exposing the setup menu to non-authorized users." class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='Profile']/*[local-name()='userPermissions']
+                    [not(contains(document-uri(.), 'System Administrator')) and 
+                    *[local-name()='enabled'][text()='true'] and 
+                    *[local-name()='name'][text()='ViewSetup']]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- PERMISSION SETS -->
+    <rule name="PermissionSetRequiresDescription" language="xml" message="Permission Sets should have a description" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[(local-name()='PermissionSet')][not(*[local-name()='description'])]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- OBJECTS-->
+    <rule name="CustomObjectRequiresDescription" language="xml" message="Custom objects should have a description" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[(local-name()='CustomObject')][ends-with(local-name(.), '__c')][not(*[local-name()='description'])]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- FIELDS -->
+    <rule name="CustomFieldRequiresDescription" language="xml" message="Custom fields should have a description" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[(local-name()='CustomField')][not(*[local-name()='description'])]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NoUnderscoresInFieldNames" language="xml" message="Custom field name should not contain underscores." class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <description>
+            Custom fields should not contain underscores in their names.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField']/*[local-name()='fullName'][matches(text(), '.*_.*__c')]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NoFieldPermissionsInProfile" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule" language="xml" message="Field permissions should not be included in profile metadata">
+        <description>Profiles should not contain field permissions - these should be in permission sets</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='Profile']/*[local-name()='fieldPermissions']
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NoObjectPermissionsInProfile" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule" language="xml" message="Object permissions should not be included in profile metadata">
+        <description>Profiles should not contain object permissions - these should be in permission sets</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='Profile']/*[local-name()='objectPermissions']
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- FIELD NAMING CONVENTIONS -->
+    <rule name="CheckboxFieldNamingConvention" language="xml" message="Checkbox fields must follow pattern: PascalCaseBool__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Checkbox'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Bool__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="TextAreaFieldNamingConvention" language="xml" message="TextArea fields must follow pattern: PascalCaseTxt__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Textarea'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Txt__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="RichTextFieldNamingConvention" language="xml" message="RichText fields must follow pattern: PascalCaseTxt__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Richtext'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Txt__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="LongTextAreaFieldNamingConvention" language="xml" message="LongTextArea fields must follow pattern: PascalCaseTxt__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='LongTextArea'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Txt__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NumberFieldNamingConvention" language="xml" message="Number fields must follow pattern: PascalCaseNumber__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Number'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Number__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="DateFieldNamingConvention" language="xml" message="Date fields must follow pattern: PascalCaseDate__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Date'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Date__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="LookupFieldNamingConvention" language="xml" message="Lookup fields must follow pattern: PascalCaseId__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Lookup'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Id__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="MasterDetailFieldNamingConvention" language="xml" message="MasterDetail fields must follow pattern: PascalCaseId__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='MasterDetail'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Id__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="DateTimeFieldNamingConvention" language="xml" message="DateTime fields must follow pattern: PascalCaseDateTime__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='DateTime'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'DateTime__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="UrlFieldNamingConvention" language="xml" message="URL fields must follow pattern: PascalCaseUrl__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Url'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Url__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="PicklistFieldNamingConvention" language="xml" message="Picklist fields must follow pattern: PascalCasePk__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Picklist'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Pk__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="MultiSelectPicklistFieldNamingConvention" language="xml" message="Multiselect Picklist fields must follow pattern: PascalCasePk__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='MultiselectPicklist'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Pk__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="CurrencyFieldNamingConvention" language="xml" message="Currency fields must follow pattern: PascalCaseCurrency__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Currency'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Currency__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="PercentFieldNamingConvention" language="xml" message="Percent fields must follow pattern: PascalCasePercent__c" class="net.sourceforge.pmd.lang.xml.rule.DomXPathRule">
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+                    //*[local-name()='CustomField'][
+                        *[local-name()='type'][text()='Percent'] and
+                        not(ends-with(*[local-name()='fullName']/text(), 'Percent__c'))
+                    ]
+                ]]>                </value>
+            </property>
+        </properties>
+    </rule>
+
+</ruleset>

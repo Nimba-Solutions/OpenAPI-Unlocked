@@ -1,0 +1,21 @@
+{
+    "compositeRequest": [
+        {
+            "method": "POST",
+            "url": "/services/data/v63.0/sobjects/User",
+            "referenceId": "owner",
+            "body": {
+                "Alias": "apiowner",
+                "Email": "api.owner@example.com",
+                "FirstName": "API",
+                "LastName": "Owner",
+                "Username": "api.owner@example.com",
+                "ProfileId": "@{adminProfile.Id}",
+                "TimeZoneSidKey": "America/Los_Angeles",
+                "LocaleSidKey": "en_US",
+                "EmailEncodingKey": "UTF-8",
+                "LanguageLocaleKey": "en_US"
+            }
+        }
+    ]
+}
