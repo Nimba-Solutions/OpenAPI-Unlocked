@@ -59,12 +59,6 @@ We welcome contributions! Please follow these steps:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
-
-- Documentation: [OpenAPI Unlocked Documentation](https://docs.swaggerunlocked.com)
-- Issues: [GitHub Issues](https://github.com/yourusername/swagger-unlocked/issues)
-- Questions: [Stack Exchange](https://salesforce.stackexchange.com/questions/tagged/swagger-unlocked)
-
 ## Acknowledgments
 
 - OpenAPI Initiative
