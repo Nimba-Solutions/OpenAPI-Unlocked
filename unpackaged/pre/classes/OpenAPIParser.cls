@@ -19,8 +19,9 @@ public with sharing class OpenAPIParser {
         }
         
         String classBody = classes[0].Body;
+        System.debug('=== Processing class: ' + className + ' ===');
         System.debug('Class body length: ' + classBody.length());
-        System.debug('First 200 chars of class body: ' + classBody.substring(0, Math.min(200, classBody.length())));
+        System.debug('First 500 chars of class body: ' + classBody.substring(0, Math.min(500, classBody.length())));
         
         Map<String, Object> result = new Map<String, Object>();
         
@@ -42,7 +43,7 @@ public with sharing class OpenAPIParser {
         
         // Extract method-level OpenAPI annotations
         Map<String, Object> paths = parseMethods(classBody);
-        System.debug('Found paths: ' + JSON.serializePretty(paths));
+        System.debug('=== Found paths: ' + JSON.serializePretty(paths) + ' ===');
         result.put('paths', paths);
         
         return result;
@@ -57,13 +58,13 @@ public with sharing class OpenAPIParser {
         Map<String, Object> paths = new Map<String, Object>();
         
         // Find all method documentation blocks
-        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
+        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*\\n*\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
         Matcher methodMatcher = methodPattern.matcher(classBody);
         
-        System.debug('Searching for methods with pattern: ' + methodPattern.pattern());
+        System.debug('=== Searching for methods with pattern: ' + methodPattern.pattern() + ' ===');
         
         while (methodMatcher.find()) {
-            System.debug('Found method match at position: ' + methodMatcher.start());
+            System.debug('=== Found method match at position: ' + methodMatcher.start() + ' ===');
             String methodDoc = methodMatcher.group(0);
             String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
             String methodName = methodMatcher.group(3);
@@ -73,6 +74,8 @@ public with sharing class OpenAPIParser {
             System.debug('Method doc: ' + methodDoc);
             
             Map<String, Object> pathInfo = parseMethod(methodDoc);
+            System.debug('Parsed method info: ' + JSON.serializePretty(pathInfo));
+            
             if (!paths.containsKey(methodName)) {
                 paths.put(methodName, new Map<String, Object>());
             }
@@ -196,14 +199,115 @@ public with sharing class OpenAPIParser {
         if (requestBodyMatcher.find()) {
             String requestBodyJson = requestBodyMatcher.group(1);
             Map<String, Object> parsedJson = parseJsonLikeStructure(requestBodyJson);
+            
+            // If content is specified, use it directly
             if (parsedJson.containsKey('content')) {
                 requestBody = parsedJson;
             } else {
-                requestBody.put('content', new Map<String, Object>{
-                    'application/json' => new Map<String, Object>{
-                        'schema' => parsedJson
+                // Check if type is specified
+                if (parsedJson.containsKey('type')) {
+                    String type = (String)parsedJson.get('type');
+                    Map<String, Object> openApiSchema = new Map<String, Object>();
+                    
+                    try {
+                        // Check if it's a nested class (Name1.Name2)
+                        List<String> typeParts = type.split('\\.');
+                        String containerClass = typeParts[0];
+                        String innerClass = typeParts.size() > 1 ? typeParts[1] : null;
+                        
+                        if (innerClass != null) {
+                            // Handle nested class
+                            List<ApexClass> containerClasses = [SELECT Id, Body FROM ApexClass WHERE Name = :containerClass];
+                            if (!containerClasses.isEmpty()) {
+                                String classBody = containerClasses[0].Body;
+                                
+                                // Find the inner class definition
+                                Pattern innerClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + innerClass + '\\s*\\{');
+                                Matcher innerClassMatcher = innerClassPattern.matcher(classBody);
+                                if (innerClassMatcher.find()) {
+                                    // Extract just the inner class body
+                                    Integer startPos = innerClassMatcher.start();
+                                    Integer braceCount = 1;
+                                    Integer pos = startPos;
+                                    while (braceCount > 0 && pos < classBody.length()) {
+                                        pos++;
+                                        if (classBody.substring(pos, pos + 1) == '{') braceCount++;
+                                        if (classBody.substring(pos, pos + 1) == '}') braceCount--;
+                                    }
+                                    classBody = classBody.substring(startPos, pos + 1);
+                                    
+                                    // Extract properties from inner class
+                                    Map<String, Object> properties = extractPropertiesFromClassBody(classBody);
+                                    if (!properties.isEmpty()) {
+                                        openApiSchema.put('type', 'object');
+                                        openApiSchema.put('properties', properties);
+                                    }
+                                }
+                            }
+                        } else {
+                            // Not a nested class, try SObject first
+                            try {
+                                List<String> sobjectTypes = new List<String>{type};
+                                List<Schema.DescribeSObjectResult> sobjectResults = Schema.describeSObjects(sobjectTypes);
+                                
+                                if (!sobjectResults.isEmpty()) {
+                                    Schema.DescribeSObjectResult describe = sobjectResults[0];
+                                    
+                                    // Build schema properties
+                                    Map<String, Object> properties = new Map<String, Object>();
+                                    for (Schema.SObjectField field : describe.fields.getMap().values()) {
+                                        Schema.DescribeFieldResult fieldDescribe = field.getDescribe();
+                                        String fieldName = fieldDescribe.getName();
+                                        String fieldType = getOpenAPIType(fieldDescribe.getType());
+                                        
+                                        Map<String, Object> property = new Map<String, Object>{
+                                            'type' => fieldType
+                                        };
+                                        
+                                        if (fieldDescribe.getLabel() != null) {
+                                            property.put('description', fieldDescribe.getLabel());
+                                        }
+                                        
+                                        properties.put(fieldName, property);
+                                    }
+                                    
+                                    openApiSchema.put('type', 'object');
+                                    openApiSchema.put('properties', properties);
+                                } else {
+                                    // Not an SObject, try Apex class
+                                    List<ApexClass> apexClasses = [SELECT Id, Body FROM ApexClass WHERE Name = :type];
+                                    if (!apexClasses.isEmpty()) {
+                                        Map<String, Object> properties = extractPropertiesFromClassBody(apexClasses[0].Body);
+                                        if (!properties.isEmpty()) {
+                                            openApiSchema.put('type', 'object');
+                                            openApiSchema.put('properties', properties);
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                System.debug('Error generating schema for type ' + type + ': ' + e.getMessage());
+                            }
+                        }
+                        
+                        // Only add the schema to the request body if we found properties
+                        if (!openApiSchema.isEmpty()) {
+                            requestBody.put('content', new Map<String, Object>{
+                                'application/json' => new Map<String, Object>{
+                                    'schema' => openApiSchema
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        System.debug('Error generating schema for type ' + type + ': ' + e.getMessage());
                     }
-                });
+                } else {
+                    // If no type specified, use the parsed JSON directly
+                    requestBody.put('content', new Map<String, Object>{
+                        'application/json' => new Map<String, Object>{
+                            'schema' => parsedJson
+                        }
+                    });
+                }
             }
         }
         return requestBody;
@@ -260,7 +364,7 @@ public with sharing class OpenAPIParser {
                 Map<String, Object> openApiSchema = new Map<String, Object>();
                 
                 try {
-                    // Get the SObject describe for the type
+                    // First try to get the SObject describe for the type
                     List<String> types = new List<String>{type};
                     List<Schema.DescribeSObjectResult> results = Schema.describeSObjects(types);
                     
@@ -293,6 +397,45 @@ public with sharing class OpenAPIParser {
                                 'schema' => openApiSchema
                             }
                         });
+                    } else {
+                        // If not an SObject, try to find an Apex class definition
+                        List<ApexClass> classes = [SELECT Id, Body FROM ApexClass WHERE Name = :type LIMIT 1];
+                        if (!classes.isEmpty()) {
+                            String classBody = classes[0].Body;
+                            
+                            // Look for property definitions in the class
+                            Map<String, Object> properties = new Map<String, Object>();
+                            Pattern propertyPattern = Pattern.compile('@AuraEnabled\\s+public\\s+(\\w+)\\s+(\\w+);');
+                            Matcher propertyMatcher = propertyPattern.matcher(classBody);
+                            
+                            while (propertyMatcher.find()) {
+                                String fieldType = propertyMatcher.group(1);
+                                String fieldName = propertyMatcher.group(2);
+                                
+                                // Convert Apex type to OpenAPI type
+                                String openApiType = 'string'; // default
+                                if (fieldType.equalsIgnoreCase('Boolean')) {
+                                    openApiType = 'boolean';
+                                } else if (fieldType.equalsIgnoreCase('Integer') || fieldType.equalsIgnoreCase('Decimal') || fieldType.equalsIgnoreCase('Double')) {
+                                    openApiType = 'number';
+                                }
+                                
+                                properties.put(fieldName, new Map<String, Object>{
+                                    'type' => openApiType
+                                });
+                            }
+                            
+                            if (!properties.isEmpty()) {
+                                openApiSchema.put('type', 'object');
+                                openApiSchema.put('properties', properties);
+                                
+                                response.put('content', new Map<String, Object>{
+                                    'application/json' => new Map<String, Object>{
+                                        'schema' => openApiSchema
+                                    }
+                                });
+                            }
+                        }
                     }
                 } catch (Exception e) {
                     System.debug('Error generating schema for type ' + type + ': ' + e.getMessage());
@@ -473,5 +616,30 @@ public with sharing class OpenAPIParser {
         storeAsStaticResource(combinedSpec, 'OPENAPI_SPEC');
         
         return combinedSpec;
+    }
+    
+    private static Map<String, Object> extractPropertiesFromClassBody(String classBody) {
+        Map<String, Object> properties = new Map<String, Object>();
+        Pattern propertyPattern = Pattern.compile('(@AuraEnabled\\s+)?(public|global)\\s+(\\w+)\\s+(\\w+);');
+        Matcher propertyMatcher = propertyPattern.matcher(classBody);
+        
+        while (propertyMatcher.find()) {
+            String fieldType = propertyMatcher.group(3);
+            String fieldName = propertyMatcher.group(4);
+            
+            // Convert Apex type to OpenAPI type
+            String openApiType = 'string'; // default
+            if (fieldType.equalsIgnoreCase('Boolean')) {
+                openApiType = 'boolean';
+            } else if (fieldType.equalsIgnoreCase('Integer') || fieldType.equalsIgnoreCase('Decimal') || fieldType.equalsIgnoreCase('Double')) {
+                openApiType = 'number';
+            }
+            
+            properties.put(fieldName, new Map<String, Object>{
+                'type' => openApiType
+            });
+        }
+        
+        return properties;
     }
 }
