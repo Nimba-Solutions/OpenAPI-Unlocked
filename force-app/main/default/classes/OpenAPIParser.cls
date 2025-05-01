@@ -47,6 +47,91 @@ public with sharing class OpenAPIParser {
     }
     
     /**
+     * Parses OpenAPI information from all classes in the default namespace
+     * @return Map<String, Object> containing the combined OpenAPI information
+     */
+    public static Map<String, Object> parseClasses() {
+        return parseClasses(null);
+    }
+    
+    /**
+     * Parses OpenAPI information from all classes in a namespace
+     * @param namespace The namespace to parse (null for default namespace)
+     * @return Map<String, Object> containing the combined OpenAPI information
+     */
+    public static Map<String, Object> parseClasses(String namespace) {
+        // Query all Apex classes in the namespace
+        String query = 'SELECT Id, Name, Body FROM ApexClass';
+        if (namespace != null) {
+            query += ' WHERE NamespacePrefix = :namespace';
+        }
+        List<ApexClass> classes = Database.query(query);
+        
+        System.debug('Found ' + classes.size() + ' classes in namespace: ' + (namespace == null ? 'default' : namespace));
+        
+        Map<String, Object> combinedSpec = new Map<String, Object>();
+        Map<String, Object> combinedPaths = new Map<String, Object>();
+        String combinedTitle = 'Salesforce REST API';
+        String combinedDescription = 'Combined REST API documentation';
+        String combinedVersion = '1.0.0';
+        
+        for (ApexClass apexClass : classes) {
+            System.debug('Processing class: ' + apexClass.Name);
+            Map<String, Object> classSpec = parseClass(apexClass.Name);
+            
+            if (classSpec != null) {
+                // Merge info section
+                if (classSpec.containsKey('info')) {
+                    Map<String, Object> info = (Map<String, Object>)classSpec.get('info');
+                    if (info.containsKey('title')) {
+                        combinedTitle = (String)info.get('title');
+                    }
+                    if (info.containsKey('description')) {
+                        combinedDescription = (String)info.get('description');
+                    }
+                    if (info.containsKey('version')) {
+                        combinedVersion = (String)info.get('version');
+                    }
+                }
+                
+                // Merge paths
+                if (classSpec.containsKey('paths')) {
+                    Map<String, Object> paths = (Map<String, Object>)classSpec.get('paths');
+                    for (String path : paths.keySet()) {
+                        if (!combinedPaths.containsKey(path)) {
+                            combinedPaths.put(path, paths.get(path));
+                        } else {
+                            // Merge HTTP methods for the same path
+                            Map<String, Object> existingMethods = (Map<String, Object>)combinedPaths.get(path);
+                            Map<String, Object> newMethods = (Map<String, Object>)paths.get(path);
+                            for (String method : newMethods.keySet()) {
+                                existingMethods.put(method, newMethods.get(method));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Set the combined info
+        combinedSpec.put('info', new Map<String, Object>{
+            'title' => combinedTitle,
+            'description' => combinedDescription,
+            'version' => combinedVersion
+        });
+        
+        // Set the combined paths
+        combinedSpec.put('paths', combinedPaths);
+        
+        System.debug('Combined OpenAPI specification: ' + JSON.serializePretty(combinedSpec));
+        
+        // Store as Static Resource
+        storeAsStaticResource(combinedSpec, 'openapi_spec');
+        
+        return combinedSpec;
+    }
+    
+    /**
      * Parses OpenAPI paths from method documentation
      * @param classBody The class body to parse
      * @return Map<String, Object> containing the paths section
@@ -137,15 +222,81 @@ public with sharing class OpenAPIParser {
         Matcher responseMatcher = responsePattern.matcher(doc);
         while (responseMatcher.find()) {
             String code = responseMatcher.group(1);
-            String[] parts = responseMatcher.group(2).split('\\s+', 2);
+            String description = responseMatcher.group(2).trim();
             Map<String, Object> response = new Map<String, Object>{
-                'description' => parts[1].trim()
+                'description' => description
             };
             responses.put(code, response);
-            System.debug('Found response: ' + code + ' - ' + parts[1].trim());
+            System.debug('Found response: ' + code + ' - ' + description);
         }
         methodInfo.put('responses', responses);
         
         return methodInfo;
+    }
+    
+    /**
+     * Stores the OpenAPI specification as a Static Resource
+     * @param spec The OpenAPI specification to store
+     * @param resourceName The name of the Static Resource
+     * @return The Static Resource that was created or updated
+     */
+    public static void storeAsStaticResource(Map<String, Object> spec, String resourceName) {
+        // Convert the specification to a pretty-printed JSON string
+        String jsonSpec = JSON.serializePretty(spec);
+        
+        // Create the Static Resource metadata
+        MetadataService.MetadataPort service = new MetadataService.MetadataPort();
+        service.SessionHeader = new MetadataService.SessionHeader_element();
+        service.SessionHeader.sessionId = UserInfo.getSessionId();
+        
+        MetadataService.StaticResource staticResource = new MetadataService.StaticResource();
+        staticResource.fullName = resourceName;
+        staticResource.contentType = 'application/json';
+        staticResource.cacheControl = 'Public';
+        
+        // Convert the JSON to base64
+        staticResource.content = EncodingUtil.base64Encode(Blob.valueOf(jsonSpec));
+        
+        // Deploy the Static Resource
+        MetadataService.AsyncResult[] results = service.create(new MetadataService.Metadata[] { staticResource });
+        
+        if (results != null && !results.isEmpty()) {
+            System.debug('Static Resource deployment initiated with ID: ' + results[0].id);
+        }
+    }
+    
+    /**
+     * Retrieves the OpenAPI specification from a ContentVersion file
+     * @param name The name of the specification
+     * @return The parsed OpenAPI specification, or null if not found
+     */
+    public static Map<String, Object> getFromFile(String name) {
+        List<OpenAPISchema__c> schemas = [
+            SELECT Id, ContentVersionId__c 
+            FROM OpenAPISchema__c 
+            WHERE Name = :name 
+            LIMIT 1
+        ];
+        
+        if (schemas.isEmpty()) {
+            System.debug('No schema record found with name: ' + name);
+            return null;
+        }
+        
+        // Get the latest ContentVersion
+        List<ContentVersion> versions = [
+            SELECT Id, VersionData 
+            FROM ContentVersion 
+            WHERE Id = :schemas[0].ContentVersionId__c 
+            LIMIT 1
+        ];
+        
+        if (versions.isEmpty()) {
+            System.debug('No content version found for schema: ' + name);
+            return null;
+        }
+        
+        String jsonSpec = versions[0].VersionData.toString();
+        return (Map<String, Object>)JSON.deserializeUntyped(jsonSpec);
     }
 } 
