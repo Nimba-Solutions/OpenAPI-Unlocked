@@ -16,7 +16,7 @@ OpenAPI Unlocked allows Salesforce developers to add simple annotations to their
 
 ## Basic Usage
 
-Add Swagger annotations to your Apex classes:
+### 1. Add Swagger annotations to your Apex classes:
 
 ```apex
 /**
@@ -44,6 +44,16 @@ global static Account getAccount() {
     return accounts[0];
 }
 ```
+> [!TIP]
+> Some annotations (such as `@response` and `@requestBody`) support sObjects and Apex-Defined types. Examples coming soon.
+
+### 2. Run `OpenAPIParser.parseClasses()` 
+
+### 3. Download the resulting `OPENAPI_SPEC.json` from your Org's Static Resources
+
+### 4. Upload `OPENAPI_SPEC.json` into your preferred tooling (e.g. Postman, SwaggerUI)
+![image](https://github.com/user-attachments/assets/65422716-e39b-42df-af07-5f1f7edce6c1)
+
 
 ## Development
 
