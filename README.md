@@ -19,21 +19,29 @@ OpenAPI Unlocked allows Salesforce developers to add simple annotations to their
 Add Swagger annotations to your Apex classes:
 
 ```apex
-@RestResource(urlMapping='/api/v1/accounts/*')
-global with sharing class AccountAPI {
+/**
+ * @openapi
+ * @operation getAccount
+ * @summary Get an account by ID
+ * @description Retrieves an account record by its ID
+ * @tag Account
+ * @security oauth2 read:accounts
+ * @param id path string Account ID
+ * @response 200 {description: "Account retrieved successfully", type: "Account"}
+ * @response 404 {description: "Account not found"}
+ */
+@HttpGet
+global static Account getAccount() {
+    RestRequest req = RestContext.request;
+    String accountId = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
     
-    @HttpGet
-    @Swagger(
-        summary='Get Account Details',
-        description='Retrieves account information by ID',
-        responses={
-            @SwaggerResponse(code=200, description='Success'),
-            @SwaggerResponse(code=404, description='Account not found')
-        }
-    )
-    global static Account getAccount() {
-        // Your implementation here
+    List<Account> accounts = [SELECT Id, Name, Industry, Phone FROM Account WHERE Id = :accountId];
+    if (accounts.isEmpty()) {
+        RestContext.response.statusCode = 404;
+        return null;
     }
+    
+    return accounts[0];
 }
 ```
 
