@@ -72,4 +72,4 @@ global with sharing class TestAPI {
         @AuraEnabled public String value;
         public Integer num;
     }
-} 
+}

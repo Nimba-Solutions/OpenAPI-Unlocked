@@ -69,6 +69,16 @@ public with sharing class OpenAPIParser {
             String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
             String methodName = methodMatcher.group(3);
             
+            // Format path with leading slash and path parameters
+            String path = '/' + methodName;
+            List<Map<String, Object>> parameters = extractParameters(methodDoc);
+            for (Map<String, Object> param : parameters) {
+                if (param.get('in') == 'path') {
+                    String paramName = (String)param.get('name');
+                    path = path + '/{' + paramName + '}';
+                }
+            }
+            
             System.debug('Method name: ' + methodName);
             System.debug('HTTP method: ' + httpMethod);
             System.debug('Method doc: ' + methodDoc);
@@ -76,10 +86,10 @@ public with sharing class OpenAPIParser {
             Map<String, Object> pathInfo = parseMethod(methodDoc);
             System.debug('Parsed method info: ' + JSON.serializePretty(pathInfo));
             
-            if (!paths.containsKey(methodName)) {
-                paths.put(methodName, new Map<String, Object>());
+            if (!paths.containsKey(path)) {
+                paths.put(path, new Map<String, Object>());
             }
-            ((Map<String, Object>)paths.get(methodName)).put(httpMethod, pathInfo);
+            ((Map<String, Object>)paths.get(path)).put(httpMethod, pathInfo);
         }
         
         return paths;
@@ -180,12 +190,27 @@ public with sharing class OpenAPIParser {
         Pattern paramPattern = Pattern.compile('@param\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(.*?)(?=\\n|$)');
         Matcher paramMatcher = paramPattern.matcher(doc);
         while (paramMatcher.find()) {
+            String paramName = paramMatcher.group(1);
+            String paramIn = paramMatcher.group(2);
+            String paramType = paramMatcher.group(3);
+            String paramDesc = paramMatcher.group(4).trim();
+            
+            // Convert Apex type to OpenAPI type
+            String openApiType = 'string'; // default
+            if (paramType.equalsIgnoreCase('Boolean')) {
+                openApiType = 'boolean';
+            } else if (paramType.equalsIgnoreCase('Integer') || paramType.equalsIgnoreCase('Decimal') || paramType.equalsIgnoreCase('Double')) {
+                openApiType = 'number';
+            }
+            
             Map<String, Object> param = new Map<String, Object>{
-                'name' => paramMatcher.group(1),
-                'in' => paramMatcher.group(2),
-                'type' => paramMatcher.group(3),
-                'description' => paramMatcher.group(4).trim(),
-                'required' => true
+                'name' => paramName,
+                'in' => paramIn,
+                'required' => true,
+                'description' => paramDesc,
+                'schema' => new Map<String, Object>{
+                    'type' => openApiType
+                }
             };
             parameters.add(param);
         }
@@ -194,147 +219,142 @@ public with sharing class OpenAPIParser {
     
     private static Map<String, Object> extractRequestBody(String doc) {
         Map<String, Object> requestBody = new Map<String, Object>();
-        Pattern requestBodyPattern = Pattern.compile('@requestBody\\s+\\{(.*?)\\}(?=\\n|$)');
+        Pattern requestBodyPattern = Pattern.compile('@requestBody\\s+\\{([^}]*)\\}(?=\\n|$)');
         Matcher requestBodyMatcher = requestBodyPattern.matcher(doc);
         if (requestBodyMatcher.find()) {
             String requestBodyJson = requestBodyMatcher.group(1);
             Map<String, Object> parsedJson = parseJsonLikeStructure(requestBodyJson);
             
-            // If content is specified, use it directly
+            // Create the base request body structure
+            requestBody.put('required', true);
+            requestBody.put('description', parsedJson.get('description'));
+            
+            // Create the content structure
+            Map<String, Object> content = new Map<String, Object>();
+            Map<String, Object> jsonContent = new Map<String, Object>();
+            Map<String, Object> schema = new Map<String, Object>();
+            
+            // If content is specified directly in the annotation
             if (parsedJson.containsKey('content')) {
-                requestBody = parsedJson;
-            } else {
-                // Check if type is specified
-                if (parsedJson.containsKey('type')) {
-                    String type = (String)parsedJson.get('type');
-                    Map<String, Object> openApiSchema = new Map<String, Object>();
-                    
-                    try {
-                        // Check if it's a nested class (Name1.Name2)
-                        List<String> typeParts = type.split('\\.');
-                        String containerClass = typeParts[0];
-                        String innerClass = typeParts.size() > 1 ? typeParts[1] : null;
-                        
-                        if (innerClass != null) {
-                            // Handle nested class
-                            List<ApexClass> containerClasses = [SELECT Id, Body FROM ApexClass WHERE Name = :containerClass];
-                            if (!containerClasses.isEmpty()) {
-                                String classBody = containerClasses[0].Body;
-                                
-                                // Find the inner class definition
-                                Pattern innerClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + innerClass + '\\s*\\{');
-                                Matcher innerClassMatcher = innerClassPattern.matcher(classBody);
-                                if (innerClassMatcher.find()) {
-                                    // Extract just the inner class body
-                                    Integer startPos = innerClassMatcher.start();
-                                    Integer braceCount = 1;
-                                    Integer pos = startPos;
-                                    while (braceCount > 0 && pos < classBody.length()) {
-                                        pos++;
-                                        if (classBody.substring(pos, pos + 1) == '{') braceCount++;
-                                        if (classBody.substring(pos, pos + 1) == '}') braceCount--;
-                                    }
-                                    classBody = classBody.substring(startPos, pos + 1);
-                                    
-                                    // Extract properties from inner class
-                                    Map<String, Object> properties = extractPropertiesFromClassBody(classBody);
-                                    if (!properties.isEmpty()) {
-                                        openApiSchema.put('type', 'object');
-                                        openApiSchema.put('properties', properties);
-                                    }
-                                }
-                            }
-                        } else {
-                            // Not a nested class, try SObject first
-                            try {
-                                List<String> sobjectTypes = new List<String>{type};
-                                List<Schema.DescribeSObjectResult> sobjectResults = Schema.describeSObjects(sobjectTypes);
-                                
-                                if (!sobjectResults.isEmpty()) {
-                                    Schema.DescribeSObjectResult describe = sobjectResults[0];
-                                    
-                                    // Build schema properties
-                                    Map<String, Object> properties = new Map<String, Object>();
-                                    for (Schema.SObjectField field : describe.fields.getMap().values()) {
-                                        Schema.DescribeFieldResult fieldDescribe = field.getDescribe();
-                                        String fieldName = fieldDescribe.getName();
-                                        String fieldType = getOpenAPIType(fieldDescribe.getType());
-                                        
-                                        Map<String, Object> property = new Map<String, Object>{
-                                            'type' => fieldType
-                                        };
-                                        
-                                        if (fieldDescribe.getLabel() != null) {
-                                            property.put('description', fieldDescribe.getLabel());
-                                        }
-                                        
-                                        properties.put(fieldName, property);
-                                    }
-                                    
-                                    openApiSchema.put('type', 'object');
-                                    openApiSchema.put('properties', properties);
-                                } else {
-                                    // Not an SObject, try Apex class
-                                    List<ApexClass> apexClasses = [SELECT Id, Body FROM ApexClass WHERE Name = :type];
-                                    if (!apexClasses.isEmpty()) {
-                                        Map<String, Object> properties = extractPropertiesFromClassBody(apexClasses[0].Body);
-                                        if (!properties.isEmpty()) {
-                                            openApiSchema.put('type', 'object');
-                                            openApiSchema.put('properties', properties);
-                                        }
-                                    }
-                                }
-                            } catch (Exception e) {
-                                System.debug('Error generating schema for type ' + type + ': ' + e.getMessage());
-                            }
-                        }
-                        
-                        // Only add the schema to the request body if we found properties
-                        if (!openApiSchema.isEmpty()) {
-                            requestBody.put('content', new Map<String, Object>{
-                                'application/json' => new Map<String, Object>{
-                                    'schema' => openApiSchema
-                                }
-                            });
-                        }
-                    } catch (Exception e) {
-                        System.debug('Error generating schema for type ' + type + ': ' + e.getMessage());
+                Map<String, Object> contentJson = (Map<String, Object>)parsedJson.get('content');
+                if (contentJson.containsKey('application/json')) {
+                    Map<String, Object> jsonSchema = (Map<String, Object>)((Map<String, Object>)contentJson.get('application/json')).get('schema');
+                    if (jsonSchema != null) {
+                        schema = jsonSchema;
+                        jsonContent.put('schema', schema);
+                        content.put('application/json', jsonContent);
+                        requestBody.put('content', content);
+                        return requestBody;
                     }
-                } else {
-                    // If no type specified, use the parsed JSON directly
-                    requestBody.put('content', new Map<String, Object>{
-                        'application/json' => new Map<String, Object>{
-                            'schema' => parsedJson
-                        }
-                    });
                 }
             }
+            
+            // If type is specified, try to extract properties from the referenced type
+            if (parsedJson.containsKey('type')) {
+                String typeName = (String)parsedJson.get('type');
+                List<String> typeNameParts = typeName.split('\\.');
+                
+                if (typeNameParts.size() == 2) {
+                    // This is a nested class reference (e.g. "TestAPI.TestRequest")
+                    String outerClassName = typeNameParts[0];
+                    String innerClassName = typeNameParts[1];
+                    
+                    // Find the outer class
+                    List<ApexClass> classes = [SELECT Id, Body FROM ApexClass WHERE Name = :outerClassName LIMIT 1];
+                    if (!classes.isEmpty()) {
+                        String classBody = classes[0].Body;
+                        
+                        // Find the inner class definition
+                        Pattern innerClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + innerClassName + '\\s*\\{([^}]*?)\\}');
+                        Matcher innerClassMatcher = innerClassPattern.matcher(classBody);
+                        
+                        if (innerClassMatcher.find()) {
+                            String innerClassBody = innerClassMatcher.group(1);
+                            Map<String, Object> classProperties = extractPropertiesFromClassBody(innerClassBody);
+                            if (!classProperties.isEmpty()) {
+                                schema.put('type', 'object');
+                                schema.put('properties', classProperties);
+                                jsonContent.put('schema', schema);
+                                content.put('application/json', jsonContent);
+                                requestBody.put('content', content);
+                                return requestBody;
+                            }
+                        }
+                    }
+                } else {
+                    // This is a regular class reference
+                    List<ApexClass> classes = [SELECT Id, Body FROM ApexClass WHERE Name = :typeName LIMIT 1];
+                    if (!classes.isEmpty()) {
+                        Map<String, Object> classProperties = extractPropertiesFromClassBody(classes[0].Body);
+                        if (!classProperties.isEmpty()) {
+                            schema.put('type', 'object');
+                            schema.put('properties', classProperties);
+                            jsonContent.put('schema', schema);
+                            content.put('application/json', jsonContent);
+                            requestBody.put('content', content);
+                            return requestBody;
+                        }
+                    }
+                }
+            }
+            
+            // If no properties were found, create an empty schema
+            schema.put('type', 'object');
+            schema.put('properties', new Map<String, Object>());
+            jsonContent.put('schema', schema);
+            content.put('application/json', jsonContent);
+            requestBody.put('content', content);
         }
         return requestBody;
     }
     
     private static Map<String, Object> parseJsonLikeStructure(String json) {
         Map<String, Object> result = new Map<String, Object>();
-        Pattern fieldPattern = Pattern.compile('(\\w+):\\s*(?:"([^"]*)"|(\\{[^}]*\\})|([\\w:]+))');
-        Matcher fieldMatcher = fieldPattern.matcher(json);
-        while (fieldMatcher.find()) {
-            String key = fieldMatcher.group(1);
-            String value = fieldMatcher.group(2);  // quoted string
-            String nestedJson = fieldMatcher.group(3);  // nested object
-            String rawValue = fieldMatcher.group(4);  // unquoted value
-            
-            if (value != null) {
-                result.put(key, value);
-            } else if (nestedJson != null) {
-                // Remove outer braces
-                nestedJson = nestedJson.substring(1, nestedJson.length() - 1);
-                result.put(key, parseJsonLikeStructure(nestedJson));
-            } else if (rawValue != null) {
-                if (rawValue.equals('true')) result.put(key, true);
-                else if (rawValue.equals('false')) result.put(key, false);
-                else result.put(key, rawValue);
+        
+        // Remove outer braces if present
+        json = json.trim();
+        if (json.startsWith('{') && json.endsWith('}')) {
+            json = json.substring(1, json.length() - 1).trim();
+        }
+        
+        // Split into key-value pairs
+        List<String> pairs = new List<String>();
+        Integer braceCount = 0;
+        Integer startPos = 0;
+        
+        for (Integer i = 0; i < json.length(); i++) {
+            String c = json.substring(i, i + 1);
+            if (c == '{') braceCount++;
+            if (c == '}') braceCount--;
+            if (c == ',' && braceCount == 0) {
+                pairs.add(json.substring(startPos, i).trim());
+                startPos = i + 1;
             }
         }
+        if (startPos < json.length()) {
+            pairs.add(json.substring(startPos).trim());
+        }
+        
+        for (String pair : pairs) {
+            if (pair.contains(':')) {
+                List<String> parts = pair.split(':', 2);
+                String key = parts[0].trim();
+                String value = parts[1].trim();
+                
+                // Remove quotes if present
+                if (value.startsWith('"') && value.endsWith('"')) {
+                    value = value.substring(1, value.length() - 1);
+                }
+                
+                // Handle nested objects
+                if (value.startsWith('{') && value.endsWith('}')) {
+                    result.put(key, parseJsonLikeStructure(value));
+                } else {
+                    result.put(key, value);
+                }
+            }
+        }
+        
         return result;
     }
     
@@ -405,12 +425,12 @@ public with sharing class OpenAPIParser {
                             
                             // Look for property definitions in the class
                             Map<String, Object> properties = new Map<String, Object>();
-                            Pattern propertyPattern = Pattern.compile('@AuraEnabled\\s+public\\s+(\\w+)\\s+(\\w+);');
+                            Pattern propertyPattern = Pattern.compile('(public|global)\\s+(\\w+)\\s+(\\w+);');
                             Matcher propertyMatcher = propertyPattern.matcher(classBody);
                             
                             while (propertyMatcher.find()) {
-                                String fieldType = propertyMatcher.group(1);
-                                String fieldName = propertyMatcher.group(2);
+                                String fieldType = propertyMatcher.group(2);
+                                String fieldName = propertyMatcher.group(3);
                                 
                                 // Convert Apex type to OpenAPI type
                                 String openApiType = 'string'; // default
@@ -562,6 +582,9 @@ public with sharing class OpenAPIParser {
         String combinedDescription = 'Combined REST API documentation';
         String combinedVersion = '1.0.0';
         
+        // Add OpenAPI version
+        combinedSpec.put('openapi', '3.0.0');
+        
         for (ApexClass apexClass : classes) {
             System.debug('Processing class: ' + apexClass.Name);
             Map<String, Object> classSpec = parseClass(apexClass.Name);
@@ -610,6 +633,26 @@ public with sharing class OpenAPIParser {
         // Set the combined paths
         combinedSpec.put('paths', combinedPaths);
         
+        // Add security schemes
+        combinedSpec.put('components', new Map<String, Object>{
+            'securitySchemes' => new Map<String, Object>{
+                'oauth2' => new Map<String, Object>{
+                    'type' => 'oauth2',
+                    'flows' => new Map<String, Object>{
+                        'authorizationCode' => new Map<String, Object>{
+                            'authorizationUrl' => URL.getOrgDomainUrl().toExternalForm() + '/services/oauth2/authorize',
+                            'tokenUrl' => URL.getOrgDomainUrl().toExternalForm() + '/services/oauth2/token',
+                            'scopes' => new Map<String, String>{
+                                'api' => 'Access and manage your data (api)',
+                                'refresh_token' => 'Allow access to your data via the Web (refresh_token)',
+                                'offline_access' => 'Access your data anytime (offline_access)'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
         System.debug('Combined OpenAPI specification: ' + JSON.serializePretty(combinedSpec));
         
         // Store as Static Resource
@@ -620,15 +663,15 @@ public with sharing class OpenAPIParser {
     
     private static Map<String, Object> extractPropertiesFromClassBody(String classBody) {
         Map<String, Object> properties = new Map<String, Object>();
-        Pattern propertyPattern = Pattern.compile('(@AuraEnabled\\s+)?(public|global)\\s+(\\w+)\\s+(\\w+);');
+        Pattern propertyPattern = Pattern.compile('(public|global)\\s+(\\w+)\\s+(\\w+)\\s*;');
         Matcher propertyMatcher = propertyPattern.matcher(classBody);
         
         while (propertyMatcher.find()) {
-            String fieldType = propertyMatcher.group(3);
-            String fieldName = propertyMatcher.group(4);
+            String fieldType = propertyMatcher.group(2);
+            String fieldName = propertyMatcher.group(3);
             
             // Convert Apex type to OpenAPI type
-            String openApiType = 'string'; // default
+            String openApiType = 'string';
             if (fieldType.equalsIgnoreCase('Boolean')) {
                 openApiType = 'boolean';
             } else if (fieldType.equalsIgnoreCase('Integer') || fieldType.equalsIgnoreCase('Decimal') || fieldType.equalsIgnoreCase('Double')) {
