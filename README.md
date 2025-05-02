@@ -49,6 +49,13 @@ global static Account getAccount() {
 
 ### 2. Run `OpenAPIParser.parseClasses()` 
 
+This static method will:
+- Scan all Apex classes in your org (or designated namespace) for OpenAPI annotations
+  - Extract type information for any sObjects or Apex Classes included in OpenAPI annotations
+- Combine the documentation from all annotated classes into a single schema
+- Automatically create or update a Static Resource named `OPENAPI_SPEC.json`
+- Return the complete OpenAPI specification as a Map for further processing if needed
+
 ### 3. Download the resulting `OPENAPI_SPEC.json` from your Org's Static Resources
 
 ### 4. Upload `OPENAPI_SPEC.json` into your preferred tooling (e.g. Postman, SwaggerUI)
