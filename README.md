@@ -45,7 +45,7 @@ global static Account getAccount() {
 }
 ```
 > [!TIP]
-> Some annotations (such as `@response` and `@requestBody`) support sObjects and Apex-Defined types. Examples coming soon.
+> Some annotations (such as `@response` and `@requestBody`) support sObjects and Apex-Defined types. (More examples coming soon)
 
 ### 2. Run `OpenAPIParser.parseClasses()` 
 
