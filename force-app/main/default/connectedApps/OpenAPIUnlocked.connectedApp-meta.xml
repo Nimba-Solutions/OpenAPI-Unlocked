@@ -5,7 +5,7 @@
     <oauthConfig>
         <callbackUrl>https://oauth.pstmn.io/v1/callback
 https://oauth.pstmn.io/v1/browser-callback</callbackUrl>
-        <consumerKey>3MVG9qOtrzqonpGMUSn4gBYFwh7gROD2IUVyCGZlUQOQyHH7WbO8Gg9.6lGw3H16hvuVZhrOZ8V1OCVPyqHOg</consumerKey>
+        <!-- <consumerKey>3MVG9qOtrzqonpGMUSn4gBYFwh7gROD2IUVyCGZlUQOQyHH7WbO8Gg9.6lGw3H16hvuVZhrOZ8V1OCVPyqHOg</consumerKey> -->
         <isAdminApproved>false</isAdminApproved>
         <isClientCredentialEnabled>false</isClientCredentialEnabled>
         <isCodeCredentialEnabled>true</isCodeCredentialEnabled>

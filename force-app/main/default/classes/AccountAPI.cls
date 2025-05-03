@@ -13,7 +13,6 @@ global with sharing class AccountAPI {
      * @summary Get an account by ID
      * @description Retrieves an account record by its ID
      * @tag Account
-     * @security oauth2 read:accounts
      * @param id path string Account ID
      * @response 200 {description: "Account retrieved successfully", type: "Account"}
      * @response 404 {description: "Account not found"}
@@ -38,7 +37,6 @@ global with sharing class AccountAPI {
      * @summary Create a new account
      * @description Creates a new account record
      * @tag Account
-     * @security oauth2 write:accounts
      * @requestBody {description: "Account details", required: true, content: {application/json: {schema: {type: "object", properties: {Name: {type: "string"}, Industry: {type: "string"}, Phone: {type: "string"}}}}}}
      * @response 201 {description: "Account created successfully", type: "Account"}
      * @response 400 {description: "Invalid input"}
@@ -64,7 +62,6 @@ global with sharing class AccountAPI {
      * @summary Update an account
      * @description Updates an existing account record
      * @tag Account
-     * @security oauth2 write:accounts
      * @param id path string Account ID
      * @requestBody {description: "Updated account details", required: true, content: {application/json: {schema: {type: "object", properties: {Name: {type: "string"}, Industry: {type: "string"}, Phone: {type: "string"}}}}}}
      * @response 200 {description: "Account updated successfully", type: "Account"}
@@ -92,7 +89,6 @@ global with sharing class AccountAPI {
      * @summary Delete an account
      * @description Deletes an account record
      * @tag Account
-     * @security oauth2 write:accounts
      * @param id path string Account ID
      * @response 204 {description: "Account deleted successfully"}
      * @response 404 {description: "Account not found"}

@@ -13,7 +13,6 @@ global with sharing class ContactAPI {
      * @summary Get a contact by ID
      * @description Retrieves a contact record by its ID
      * @tag Contact
-     * @security oauth2 read:contacts
      * @param id path string Contact ID
      * @response 200 {description: "Contact retrieved successfully", type: "Contact"}
      * @response 404 {description: "Contact not found"}
@@ -38,7 +37,6 @@ global with sharing class ContactAPI {
      * @summary Create a new contact
      * @description Creates a new contact record
      * @tag Contact
-     * @security oauth2 write:contacts
      * @requestBody {description: "Contact details", required: true, content: {application/json: {schema: {type: "object", properties: {FirstName: {type: "string"}, LastName: {type: "string"}, Email: {type: "string"}, Phone: {type: "string"}}}}}}
      * @response 201 {description: "Contact created successfully", type: "Contact"}
      * @response 400 {description: "Invalid input"}
@@ -64,7 +62,6 @@ global with sharing class ContactAPI {
      * @summary Update a contact
      * @description Updates an existing contact record
      * @tag Contact
-     * @security oauth2 write:contacts
      * @param id path string Contact ID
      * @requestBody {description: "Updated contact details", required: true, content: {application/json: {schema: {type: "object", properties: {FirstName: {type: "string"}, LastName: {type: "string"}, Email: {type: "string"}, Phone: {type: "string"}}}}}}
      * @response 200 {description: "Contact updated successfully", type: "Contact"}
@@ -92,7 +89,6 @@ global with sharing class ContactAPI {
      * @summary Delete a contact
      * @description Deletes a contact record
      * @tag Contact
-     * @security oauth2 write:contacts
      * @param id path string Contact ID
      * @response 204 {description: "Contact deleted successfully"}
      * @response 404 {description: "Contact not found"}

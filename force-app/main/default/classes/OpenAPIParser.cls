@@ -55,44 +55,8 @@ public with sharing class OpenAPIParser {
      * @return Map<String, Object> containing the paths section
      */
     private static Map<String, Object> parseMethods(String classBody) {
-        Map<String, Object> paths = new Map<String, Object>();
-        
-        // Find all method documentation blocks
-        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*\\n*\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
-        Matcher methodMatcher = methodPattern.matcher(classBody);
-        
-        System.debug('=== Searching for methods with pattern: ' + methodPattern.pattern() + ' ===');
-        
-        while (methodMatcher.find()) {
-            System.debug('=== Found method match at position: ' + methodMatcher.start() + ' ===');
-            String methodDoc = methodMatcher.group(0);
-            String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
-            String methodName = methodMatcher.group(3);
-            
-            // Format path with leading slash and path parameters
-            String path = '/' + methodName;
-            List<Map<String, Object>> parameters = extractParameters(methodDoc);
-            for (Map<String, Object> param : parameters) {
-                if (param.get('in') == 'path') {
-                    String paramName = (String)param.get('name');
-                    path = path + '/{' + paramName + '}';
-                }
-            }
-            
-            System.debug('Method name: ' + methodName);
-            System.debug('HTTP method: ' + httpMethod);
-            System.debug('Method doc: ' + methodDoc);
-            
-            Map<String, Object> pathInfo = parseMethod(methodDoc);
-            System.debug('Parsed method info: ' + JSON.serializePretty(pathInfo));
-            
-            if (!paths.containsKey(path)) {
-                paths.put(path, new Map<String, Object>());
-            }
-            ((Map<String, Object>)paths.get(path)).put(httpMethod, pathInfo);
-        }
-        
-        return paths;
+        // Call the overloaded method with an empty baseUrlMapping
+        return parseMethods(classBody, '');
     }
     
     /**
@@ -100,7 +64,7 @@ public with sharing class OpenAPIParser {
      * @param doc The method documentation to parse
      * @return Map<String, Object> containing the method's OpenAPI information
      */
-    private static Map<String, Object> parseMethod(String doc) {
+    public static Map<String, Object> parseMethod(String doc) {
         Map<String, Object> methodInfo = new Map<String, Object>();
         
         // Extract basic method info
@@ -554,6 +518,217 @@ public with sharing class OpenAPIParser {
     }
     
     /**
+     * Parses OpenAPI information from a class's comments
+     * @param apexClass The ApexClass object to parse
+     * @return Map<String, Object> containing the parsed OpenAPI information
+     */
+    public static Map<String, Object> parseClassForBatch(ApexClass apexClass) {
+        String className = apexClass.Name;
+        String classBody = apexClass.Body;
+        
+        System.debug('=== Processing class: ' + className + ' ===');
+        
+        Map<String, Object> result = new Map<String, Object>();
+        
+        // Extract RestResource URL mapping if present
+        String baseUrlMapping = extractRestResourceUrlMapping(classBody);
+        if (String.isNotBlank(baseUrlMapping)) {
+            result.put('baseUrlMapping', baseUrlMapping);
+        }
+        
+        // Extract class-level OpenAPI annotations
+        Pattern classPattern = Pattern.compile('/\\*\\*\\s*\\n\\s*\\*\\s*@openapi\\s*\\n\\s*\\*\\s*@title\\s+(.*?)\\n\\s*\\*\\s*@description\\s+(.*?)\\n\\s*\\*\\s*@version\\s+(.*?)\\n\\s*\\*/');
+        Matcher classMatcher = classPattern.matcher(classBody);
+        
+        if (classMatcher.find()) {
+            System.debug('Found class-level OpenAPI annotation');
+            Map<String, Object> info = new Map<String, Object>{
+                'title' => classMatcher.group(1).trim(),
+                'description' => classMatcher.group(2).trim(),
+                'version' => classMatcher.group(3).trim()
+            };
+            result.put('info', info);
+        } else {
+            System.debug('No class-level OpenAPI annotation found');
+        }
+        
+        // Extract method-level OpenAPI annotations
+        Map<String, Object> paths = parseMethods(classBody, baseUrlMapping);
+        result.put('paths', paths);
+        
+        return result;
+    }
+    
+    /**
+     * Extract the URL mapping from @RestResource annotation
+     * @param classBody The class body to inspect
+     * @return The URL mapping string or empty string if not found
+     */
+    private static String extractRestResourceUrlMapping(String classBody) {
+        Pattern restResourcePattern = Pattern.compile('@RestResource\\s*\\(\\s*urlMapping\\s*=\\s*[\'"]([^\'"]*)[\'"]\\s*\\)');
+        Matcher matcher = restResourcePattern.matcher(classBody);
+        if (matcher.find()) {
+            String urlMapping = matcher.group(1);
+            System.debug('Found REST resource URL mapping: ' + urlMapping);
+            // Remove trailing /* if present
+            if (urlMapping.endsWith('/*')) {
+                urlMapping = urlMapping.substring(0, urlMapping.length() - 2);
+            }
+            // Ensure it starts with /
+            if (!urlMapping.startsWith('/')) {
+                urlMapping = '/' + urlMapping;
+            }
+            return urlMapping;
+        }
+        return '';
+    }
+    
+    /**
+     * Utility method to construct RESTful API paths based on method information
+     * @param baseUrlMapping The base URL mapping from @RestResource
+     * @param httpMethod The HTTP method (get, post, put, delete)
+     * @param methodName The method name
+     * @param pathParams List of path parameter names
+     * @return Properly formatted RESTful API path
+     */
+    public static String constructApiPath(String baseUrlMapping, String httpMethod, String methodName, List<String> pathParams) {
+        // Format path according to true RESTful API standards
+        String path = baseUrlMapping;
+        
+        // Extract resource name from the baseUrlMapping
+        // This gives us the resource type (e.g., "account" or "contact")
+        String resourceName = '';
+        if (String.isNotBlank(baseUrlMapping)) {
+            List<String> pathParts = baseUrlMapping.split('/');
+            if (pathParts.size() > 0) {
+                resourceName = pathParts[pathParts.size() - 1];
+            }
+        }
+        
+        // Apply RESTful patterns based on HTTP method and method name
+        if (httpMethod == 'get') {
+            if (methodName.toLowerCase().startsWith('get') && pathParams.size() == 1) {
+                // GET single resource by ID: /resource/{id}
+                path = path + '/{' + pathParams[0] + '}';
+            } else if (methodName.toLowerCase().startsWith('list') || 
+                       methodName.toLowerCase().startsWith('getall') ||
+                       methodName.toLowerCase().startsWith('findall')) {
+                // GET collection: /resource
+                // Path already has the base resource path
+            } else if (methodName.toLowerCase().contains('by')) {
+                // GET with filter: /resource/by{Field}/{value}
+                String[] parts = methodName.split('(?i)by');
+                if (parts.size() > 1 && pathParams.size() > 0) {
+                    path = path + '/by' + parts[1] + '/{' + pathParams[0] + '}';
+                } else {
+                    // Fallback: use method name as a subresource
+                    path = path + '/' + methodName;
+                    for (String paramName : pathParams) {
+                        path = path + '/{' + paramName + '}';
+                    }
+                }
+            } else {
+                // For other GET operations, use method name as subresource
+                path = path + '/' + methodName;
+                for (String paramName : pathParams) {
+                    path = path + '/{' + paramName + '}';
+                }
+            }
+        } else if (httpMethod == 'post') {
+            if (methodName.toLowerCase().startsWith('create')) {
+                // POST to create: /resource (no method name needed)
+                // Path already has the base resource path
+            } else {
+                // For other POST operations (actions/procedures)
+                path = path + '/' + methodName;
+                for (String paramName : pathParams) {
+                    path = path + '/{' + paramName + '}';
+                }
+            }
+        } else if (httpMethod == 'put' || httpMethod == 'patch') {
+            if (methodName.toLowerCase().startsWith('update') && pathParams.size() > 0) {
+                // PUT/PATCH to update: /resource/{id} (no method name needed)
+                path = path + '/{' + pathParams[0] + '}';
+            } else {
+                // For other update operations
+                path = path + '/' + methodName;
+                for (String paramName : pathParams) {
+                    path = path + '/{' + paramName + '}';
+                }
+            }
+        } else if (httpMethod == 'delete') {
+            if (methodName.toLowerCase().startsWith('delete') && pathParams.size() > 0) {
+                // DELETE: /resource/{id} (no method name needed)
+                path = path + '/{' + pathParams[0] + '}';
+            } else {
+                // For other delete operations
+                path = path + '/' + methodName;
+                for (String paramName : pathParams) {
+                    path = path + '/{' + paramName + '}';
+                }
+            }
+        } else {
+            // For all other operations
+            path = path + '/' + methodName;
+            for (String paramName : pathParams) {
+                path = path + '/{' + paramName + '}';
+            }
+        }
+        
+        return path;
+    }
+    
+    /**
+     * Parses OpenAPI paths from method documentation
+     * @param classBody The class body to parse
+     * @param baseUrlMapping The base URL mapping from @RestResource
+     * @return Map<String, Object> containing the paths section
+     */
+    private static Map<String, Object> parseMethods(String classBody, String baseUrlMapping) {
+        Map<String, Object> paths = new Map<String, Object>();
+        
+        // Find all method documentation blocks
+        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*\\n*\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
+        Matcher methodMatcher = methodPattern.matcher(classBody);
+        
+        System.debug('=== Searching for methods with pattern: ' + methodPattern.pattern() + ' ===');
+        
+        while (methodMatcher.find()) {
+            System.debug('=== Found method match at position: ' + methodMatcher.start() + ' ===');
+            String methodDoc = methodMatcher.group(0);
+            String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
+            String methodName = methodMatcher.group(3);
+            
+            // Extract parameters to find path parameters
+            List<Map<String, Object>> parameters = extractParameters(methodDoc);
+            List<String> pathParams = new List<String>();
+            for (Map<String, Object> param : parameters) {
+                if (param.get('in') == 'path') {
+                    pathParams.add((String)param.get('name'));
+                }
+            }
+            
+            // Use shared utility method to construct the path
+            String path = constructApiPath(baseUrlMapping, httpMethod, methodName, pathParams);
+            
+            System.debug('Method name: ' + methodName);
+            System.debug('HTTP method: ' + httpMethod);
+            System.debug('Path parameters: ' + pathParams);
+            System.debug('Final path: ' + path);
+            
+            Map<String, Object> pathInfo = parseMethod(methodDoc);
+            System.debug('Parsed method info: ' + JSON.serializePretty(pathInfo));
+            
+            if (!paths.containsKey(path)) {
+                paths.put(path, new Map<String, Object>());
+            }
+            ((Map<String, Object>)paths.get(path)).put(httpMethod, pathInfo);
+        }
+        
+        return paths;
+    }
+    
+    /**
      * Parses OpenAPI information from all classes in the default namespace
      * @return Map<String, Object> containing the combined OpenAPI information
      */
@@ -563,102 +738,27 @@ public with sharing class OpenAPIParser {
     
     /**
      * Parses OpenAPI information from all classes in a namespace
+     * This method automatically uses batch processing for better performance and to avoid governor limits
      * @param namespace The namespace to parse (null for default namespace)
      * @return Map<String, Object> containing the combined OpenAPI information
      */
     public static Map<String, Object> parseClasses(String namespace) {
-        // Query all Apex classes in the namespace
-        String query = 'SELECT Id, Name, Body FROM ApexClass';
-        if (namespace != null) {
-            query += ' WHERE NamespacePrefix = :namespace';
-        }
-        List<ApexClass> classes = Database.query(query);
+        // Always use batch processing for consistency and to avoid governor limits
+        System.debug('Starting batch processing of Apex classes for OpenAPI documentation');
+        Id batchJobId = Database.executeBatch(new OpenAPIParserBatch(namespace), 200);
         
-        System.debug('Found ' + classes.size() + ' classes in namespace: ' + (namespace == null ? 'default' : namespace));
+        System.debug('Batch job started with ID: ' + batchJobId);
+        System.debug('The OpenAPI specification will be generated asynchronously');
+        System.debug('When complete, it will be available as a Static Resource named "OPENAPI_SPEC"');
         
-        Map<String, Object> combinedSpec = new Map<String, Object>();
-        Map<String, Object> combinedPaths = new Map<String, Object>();
-        String combinedTitle = 'Salesforce REST API';
-        String combinedDescription = 'Combined REST API documentation';
-        String combinedVersion = '1.0.0';
+        // Return an empty map since the actual processing happens asynchronously
+        Map<String, Object> result = new Map<String, Object>{
+            'status' => 'processing',
+            'message' => 'OpenAPI specification generation started. Check Static Resources for OPENAPI_SPEC when complete.',
+            'batchJobId' => batchJobId
+        };
         
-        // Add OpenAPI version
-        combinedSpec.put('openapi', '3.0.0');
-        
-        for (ApexClass apexClass : classes) {
-            System.debug('Processing class: ' + apexClass.Name);
-            Map<String, Object> classSpec = parseClass(apexClass.Name);
-            
-            if (classSpec != null) {
-                // Merge info section
-                if (classSpec.containsKey('info')) {
-                    Map<String, Object> info = (Map<String, Object>)classSpec.get('info');
-                    if (info.containsKey('title')) {
-                        combinedTitle = (String)info.get('title');
-                    }
-                    if (info.containsKey('description')) {
-                        combinedDescription = (String)info.get('description');
-                    }
-                    if (info.containsKey('version')) {
-                        combinedVersion = (String)info.get('version');
-                    }
-                }
-                
-                // Merge paths
-                if (classSpec.containsKey('paths')) {
-                    Map<String, Object> paths = (Map<String, Object>)classSpec.get('paths');
-                    for (String path : paths.keySet()) {
-                        if (!combinedPaths.containsKey(path)) {
-                            combinedPaths.put(path, paths.get(path));
-                        } else {
-                            // Merge HTTP methods for the same path
-                            Map<String, Object> existingMethods = (Map<String, Object>)combinedPaths.get(path);
-                            Map<String, Object> newMethods = (Map<String, Object>)paths.get(path);
-                            for (String method : newMethods.keySet()) {
-                                existingMethods.put(method, newMethods.get(method));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Set the combined info
-        combinedSpec.put('info', new Map<String, Object>{
-            'title' => combinedTitle,
-            'description' => combinedDescription,
-            'version' => combinedVersion
-        });
-        
-        // Set the combined paths
-        combinedSpec.put('paths', combinedPaths);
-        
-        // Add security schemes
-        combinedSpec.put('components', new Map<String, Object>{
-            'securitySchemes' => new Map<String, Object>{
-                'oauth2' => new Map<String, Object>{
-                    'type' => 'oauth2',
-                    'flows' => new Map<String, Object>{
-                        'authorizationCode' => new Map<String, Object>{
-                            'authorizationUrl' => URL.getOrgDomainUrl().toExternalForm() + '/services/oauth2/authorize',
-                            'tokenUrl' => URL.getOrgDomainUrl().toExternalForm() + '/services/oauth2/token',
-                            'scopes' => new Map<String, String>{
-                                'api' => 'Access and manage your data (api)',
-                                'refresh_token' => 'Allow access to your data via the Web (refresh_token)',
-                                'offline_access' => 'Access your data anytime (offline_access)'
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        System.debug('Combined OpenAPI specification: ' + JSON.serializePretty(combinedSpec));
-        
-        // Store as Static Resource
-        storeAsStaticResource(combinedSpec, 'OPENAPI_SPEC');
-        
-        return combinedSpec;
+        return result;
     }
     
     private static Map<String, Object> extractPropertiesFromClassBody(String classBody) {

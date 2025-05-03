@@ -49,12 +49,13 @@ global static Account getAccount() {
 
 ### 2. Run `OpenAPIParser.parseClasses()` 
 
-This static method will:
-- Scan all Apex classes in your org (or designated namespace) for OpenAPI annotations
-  - Extract type information for any sObjects or Apex Classes included in OpenAPI annotations
-- Combine the documentation from all annotated classes into a single schema
+Generate the OpenAPI documentation by running this static method in Anonymous Apex. It will:
+- Start a batch job to process all Apex classes with OpenAPI annotations
+- Scan classes in batches to avoid hitting governor limits
 - Automatically create or update a Static Resource named `OPENAPI_SPEC.json`
-- Return the complete OpenAPI specification as a Map for further processing if needed
+- Return job status information while processing runs in the background
+
+The batch processing ensures this method works reliably with organizations of any size, from a few classes to thousands.
 
 ### 3. Download the resulting `OPENAPI_SPEC.json` from your Org's Static Resources
 
@@ -69,6 +70,17 @@ To work on this project in a scratch org:
 1. [Set up CumulusCI](https://cumulusci.readthedocs.io/en/latest/tutorial.html)
 2. Run `cci flow run dev_org --org dev` to deploy this project
 3. Run `cci org browser dev` to open the org in your browser
+
+## Handling Large Codebases
+
+For extremely large APIs with many endpoints, you can split the documentation by API tag:
+
+```apex
+// Generate a separate specification for each API tag
+OpenAPIParserModular.generateModularSpecifications();
+```
+
+This creates multiple Static Resources, one per API tag (e.g., `OPENAPI_ACCOUNT.json`, `OPENAPI_CONTACT.json`), and a master index (`OPENAPI_MASTER_INDEX.json`) that references all modules.
 
 ## Contributing
 
