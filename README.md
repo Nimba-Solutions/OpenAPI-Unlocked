@@ -102,7 +102,7 @@ This will:
 - Store results in one or many static resource
 - Return job status information while processing runs in the background
 
-### 3. Download the resulting StaticResource from your Org's Static Resources
+### 3. Download the resulting StaticResource from your Org
 
 ### 4. Upload your spec into your preferred tool (e.g. Postman, SwaggerUI)
 ![image](https://github.com/user-attachments/assets/65422716-e39b-42df-af07-5f1f7edce6c1)
