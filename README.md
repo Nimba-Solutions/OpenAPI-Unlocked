@@ -85,13 +85,14 @@ global with sharing class AccountAPI {
 }
 ```
 
-### 2. Run `OpenAPIParser.parseClasses()` or use our regeneration script
+### 2. Run `OpenAPIParser.parseClasses()`
 
 Generate the OpenAPI documentation by running this static method in Anonymous Apex:
 
 ```apex
 // Basic usage
 OpenAPIParser.parseClasses();
+```
 
 This will:
 - Identify classes with OpenApi annotations
