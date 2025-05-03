@@ -91,17 +91,20 @@ Generate the OpenAPI documentation by running this static method in Anonymous Ap
 ```apex
 // Basic usage
 OpenAPIParser.parseClasses();
+
+// Optionally provide a specific namespace
+OpenAPIParser.parseClasses('acme');
 ```
 
 This will:
-- Identify classes with OpenApi annotations
+- Identify and parse classes with OpenApi annotations
 - Automatically register and include all referenced schemas
-- Create or update a Static Resource named `OPENAPI_SPEC.json`
+- Store results in one or many static resource
 - Return job status information while processing runs in the background
 
-### 3. Download the resulting `OPENAPI_SPEC.json` from your Org's Static Resources
+### 3. Download the resulting StaticResource from your Org's Static Resources
 
-### 4. Upload `OPENAPI_SPEC.json` into your preferred tooling (e.g. Postman, SwaggerUI)
+### 4. Upload your spec into your preferred tool (e.g. Postman, SwaggerUI)
 ![image](https://github.com/user-attachments/assets/65422716-e39b-42df-af07-5f1f7edce6c1)
 
 ## Annotation Reference
