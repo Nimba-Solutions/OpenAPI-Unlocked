@@ -27,6 +27,9 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
             'description' => 'API documentation for ' + apiTag,
             'version' => '1.0.0'
         });
+        
+        // Reset the schema registry for a fresh start
+        OpenAPIParser.resetSchemaRegistry();
     }
     
     /**
@@ -125,8 +128,8 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
             }
         });
         
-        // Add security schemes
-        combinedSpec.put('components', new Map<String, Object>{
+        // Add components section with schemas from the registry and security schemes
+        Map<String, Object> components = new Map<String, Object>{
             'securitySchemes' => new Map<String, Object>{
                 'oauth2' => new Map<String, Object>{
                     'type' => 'oauth2',
@@ -141,7 +144,23 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
                     }
                 }
             }
-        });
+        };
+        
+        // Add schemas from the registry
+        Map<String, Map<String, Object>> schemaRegistry = OpenAPIParser.getSchemaRegistry();
+        System.debug('Schema registry for ' + apiTag + ' contains ' + schemaRegistry.size() + ' schemas');
+        if (!schemaRegistry.isEmpty()) {
+            // Using direct assignment to ensure we get the full registry
+            components.put('schemas', schemaRegistry);
+            System.debug('Added schemas to components section for ' + apiTag);
+        } else {
+            System.debug('WARNING: Schema registry is empty for ' + apiTag + ' despite having schema references');
+        }
+        
+        // Debug the components section
+        System.debug('Components section for ' + apiTag + ': ' + JSON.serializePretty(components));
+        
+        combinedSpec.put('components', components);
         
         // Apply security at the root level
         combinedSpec.put('security', new List<Map<String, List<String>>>{
@@ -151,7 +170,7 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
         });
         
         System.debug('Finished creating modular spec for tag: ' + apiTag);
-        System.enqueueJob(new OpenAPIStorageQueueable(combinedSpec, resourceName));
+        OpenAPIParser.storeAsStaticResource(combinedSpec, resourceName);
     }
     
     /**
@@ -164,7 +183,7 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
         String classBody = apexClass.Body;
         
         // Extract RestResource URL mapping if present
-        String baseUrlMapping = extractRestResourceUrlMapping(classBody);
+        String baseUrlMapping = OpenAPIParser.extractRestResourceUrlMapping(classBody);
         
         // Find all method documentation blocks
         Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*\\n*\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
@@ -181,12 +200,13 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
             String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
             String methodName = methodMatcher.group(3);
             
-            // Check for path parameters
-            Pattern paramPattern = Pattern.compile('@param\\s+(\\w+)\\s+path\\s+.*');
-            Matcher paramMatcher = paramPattern.matcher(methodDoc);
+            // Extract path parameters using the shared utility method
+            List<Map<String, Object>> parameters = OpenAPIParser.extractParameters(methodDoc);
             List<String> pathParams = new List<String>();
-            while (paramMatcher.find()) {
-                pathParams.add(paramMatcher.group(1));
+            for (Map<String, Object> param : parameters) {
+                if (param.get('in') == 'path') {
+                    pathParams.add((String)param.get('name'));
+                }
             }
             
             // Use shared utility method to construct the path
@@ -194,8 +214,6 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
             
             // Use OpenAPIParser's parseMethod to get the details
             Map<String, Object> methodInfo = OpenAPIParser.parseMethod(methodDoc);
-            
-            // No longer removing security - method level will take precedence over root level
             
             if (!paths.containsKey(path)) {
                 paths.put(path, new Map<String, Object>());
@@ -208,28 +226,5 @@ public class OpenAPIParserModularBatch implements Database.Batchable<SObject>, D
         }
         
         return result;
-    }
-    
-    /**
-     * Extract the URL mapping from @RestResource annotation
-     * @param classBody The class body to inspect
-     * @return The URL mapping string or empty string if not found
-     */
-    private String extractRestResourceUrlMapping(String classBody) {
-        Pattern restResourcePattern = Pattern.compile('@RestResource\\s*\\(\\s*urlMapping\\s*=\\s*[\'"]([^\'"]*)[\'"]\\s*\\)');
-        Matcher matcher = restResourcePattern.matcher(classBody);
-        if (matcher.find()) {
-            String urlMapping = matcher.group(1);
-            // Remove trailing /* if present
-            if (urlMapping.endsWith('/*')) {
-                urlMapping = urlMapping.substring(0, urlMapping.length() - 2);
-            }
-            // Ensure it starts with /
-            if (!urlMapping.startsWith('/')) {
-                urlMapping = '/' + urlMapping;
-            }
-            return urlMapping;
-        }
-        return '';
     }
 } 

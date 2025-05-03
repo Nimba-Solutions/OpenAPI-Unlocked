@@ -11,7 +11,8 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
     private String combinedDescription = 'Combined REST API documentation';
     private String combinedVersion = '1.0.0';
     private String namespace;
-    private Boolean isFinalBatch = false;
+    // Keep a stateful copy of schemas to persist between batch transactions
+    private Map<String, Map<String, Object>> batchSchemas = new Map<String, Map<String, Object>>();
     
     /**
      * Constructor for parsing all classes in the default namespace
@@ -28,9 +29,13 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
         this.namespace = namespace;
         this.combinedSpec = new Map<String, Object>();
         this.combinedPaths = new Map<String, Object>();
+        this.batchSchemas = new Map<String, Map<String, Object>>();
         
         // Initialize OpenAPI spec with version
         this.combinedSpec.put('openapi', '3.0.0');
+        
+        // Reset the schema registry for a fresh start
+        OpenAPIParser.resetSchemaRegistry();
     }
     
     /**
@@ -79,8 +84,8 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
             
             System.debug('Processing class: ' + apexClass.Name);
             
-            // Calling a refactored method that processes a single class in a memory-efficient way
-            Map<String, Object> classSpec = OpenAPIParser.parseClassForBatch(apexClass);
+            // Process this class and extract all paths
+            Map<String, Object> classSpec = processClass(apexClass);
             
             if (classSpec != null) {
                 // Merge info section - only take the first encountered class info
@@ -116,6 +121,18 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
                 }
             }
         }
+        
+        // Copy schemas from the registry to our stateful variable after each batch
+        Map<String, Map<String, Object>> currentSchemas = OpenAPIParser.getSchemaRegistry();
+        if (currentSchemas != null && !currentSchemas.isEmpty()) {
+            for (String schemaName : currentSchemas.keySet()) {
+                if (!batchSchemas.containsKey(schemaName)) {
+                    batchSchemas.put(schemaName, currentSchemas.get(schemaName));
+                    System.debug('Saved schema to batch state: ' + schemaName);
+                }
+            }
+            System.debug('Current batch schemas size: ' + batchSchemas.size());
+        }
     }
     
     /**
@@ -141,8 +158,13 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
         // Set the combined paths
         combinedSpec.put('paths', combinedPaths);
         
-        // Add security schemes
-        combinedSpec.put('components', new Map<String, Object>{
+        System.debug('Number of schemas collected during batch execution: ' + batchSchemas.size());
+        if (batchSchemas.isEmpty()) {
+            System.debug(LoggingLevel.WARN, 'WARNING: No schemas were collected during batch execution!');
+        }
+        
+        // Add components section with schemas from our stateful variable instead of the registry
+        Map<String, Object> components = new Map<String, Object>{
             'securitySchemes' => new Map<String, Object>{
                 'oauth2' => new Map<String, Object>{
                     'type' => 'oauth2',
@@ -158,8 +180,12 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
                         }
                     }
                 }
-            }
-        });
+            },
+            'schemas' => batchSchemas
+        };
+        
+        // Add the components section to the spec
+        combinedSpec.put('components', components);
         
         // Apply security at the root level
         combinedSpec.put('security', new List<Map<String, List<String>>>{
@@ -169,8 +195,85 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
         });
         
         System.debug('Combined OpenAPI specification complete');
+        if (combinedSpec.containsKey('components')) {
+            Map<String, Object> comps = (Map<String, Object>)combinedSpec.get('components');
+            if (comps.containsKey('schemas')) {
+                Map<String, Object> schemas = (Map<String, Object>)comps.get('schemas');
+                System.debug('Number of schemas in final spec: ' + schemas.size());
+                System.debug('Schema names: ' + String.join(new List<String>(schemas.keySet()), ', '));
+            } else {
+                System.debug('No schemas section in components!');
+            }
+        } else {
+            System.debug('No components section in spec!');
+        }
         
-        // Store the final spec asynchronously to avoid callout limits
-        System.enqueueJob(new OpenAPIStorageQueueable(combinedSpec, 'OPENAPI_SPEC'));
+        // Store the final spec
+        OpenAPIParser.storeAsStaticResource(combinedSpec, 'OPENAPI_SPEC');
+    }
+    
+    /**
+     * Process a single class to extract paths and methods
+     * @param apexClass The Apex class to process
+     * @return Map<String, Object> with paths and class info
+     */
+    private Map<String, Object> processClass(ApexClass apexClass) {
+        String className = apexClass.Name;
+        String classBody = apexClass.Body;
+        
+        Map<String, Object> result = new Map<String, Object>();
+        
+        // Extract RestResource URL mapping if present
+        String baseUrlMapping = OpenAPIParser.extractRestResourceUrlMapping(classBody);
+        
+        // Extract class-level OpenAPI annotations
+        Pattern classPattern = Pattern.compile('/\\*\\*\\s*\\n\\s*\\*\\s*@openapi\\s*\\n\\s*\\*\\s*@title\\s+(.*?)\\n\\s*\\*\\s*@description\\s+(.*?)\\n\\s*\\*\\s*@version\\s+(.*?)\\n\\s*\\*/');
+        Matcher classMatcher = classPattern.matcher(classBody);
+        
+        if (classMatcher.find()) {
+            Map<String, Object> info = new Map<String, Object>{
+                'title' => classMatcher.group(1).trim(),
+                'description' => classMatcher.group(2).trim(),
+                'version' => classMatcher.group(3).trim()
+            };
+            result.put('info', info);
+        }
+        
+        // Extract method-level OpenAPI annotations
+        Map<String, Object> paths = new Map<String, Object>();
+        
+        // Find all method documentation blocks
+        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*\\n*\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
+        Matcher methodMatcher = methodPattern.matcher(classBody);
+        
+        while (methodMatcher.find()) {
+            String methodDoc = methodMatcher.group(0);
+            String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
+            String methodName = methodMatcher.group(3);
+            
+            // Extract path parameters
+            List<Map<String, Object>> methodParams = OpenAPIParser.extractParameters(methodDoc);
+            List<String> pathParams = new List<String>();
+            
+            for (Map<String, Object> param : methodParams) {
+                if (param.get('in') == 'path') {
+                    pathParams.add((String)param.get('name'));
+                }
+            }
+            
+            // Construct the path
+            String path = OpenAPIParser.constructApiPath(baseUrlMapping, httpMethod, methodName, pathParams);
+            
+            // Parse method info
+            Map<String, Object> pathInfo = OpenAPIParser.parseMethod(methodDoc);
+            
+            if (!paths.containsKey(path)) {
+                paths.put(path, new Map<String, Object>());
+            }
+            ((Map<String, Object>)paths.get(path)).put(httpMethod, pathInfo);
+        }
+        
+        result.put('paths', paths);
+        return result;
     }
 } 
