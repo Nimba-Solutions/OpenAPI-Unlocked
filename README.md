@@ -89,10 +89,10 @@ global with sharing class AccountAPI {
 Generate the OpenAPI documentation by running this static method in Anonymous Apex.
 
 ```apex
-// Basic usage
+// Parse everything parsable
 OpenAPIParser.parseClasses();
 
-// Optionally provide a specific namespace
+// Optionally limit parsing to a specific namespace
 OpenAPIParser.parseClasses('acme');
 ```
 
