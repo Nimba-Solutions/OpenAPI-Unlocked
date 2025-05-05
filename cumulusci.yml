@@ -52,12 +52,12 @@ tasks:
         class_path: cumulusci.tasks.salesforce.composite.CompositeApi
         options:
             data_files:
-                - "unpackaged/config/users/owner.json"
+                - "unpackaged/experience/users/owner.json"
 
     deploy_experience_cloud:
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
-            path: "unpackaged/config/experience/src"
+            path: "unpackaged/experience/src"
 
     assign_api_guest_user_permission_set:
         group: "experience"
@@ -65,7 +65,7 @@ tasks:
         class_path: cumulusci.tasks.salesforce.composite.CompositeApi
         options:
             data_files:
-                - "unpackaged/config/users/guest.json"
+                - "unpackaged/experience/users/guest.json"
 
 flows:
     # Digital Experience Setup Flows
