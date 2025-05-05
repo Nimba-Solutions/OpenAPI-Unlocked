@@ -49,10 +49,12 @@ tasks:
 
     generate_spec:
         group: "Dev/CI"
-        description: Executes an Apex script to invoke OpenAPIParser from outside of Salesforce
-        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+        description: Generates OpenAPI specification from Apex classes
+        class_path: tasks.openapi_spec.GenerateOpenAPISpec
         options:
-            path: scripts/GenerateSpec.apex
+            version: "beta/0.3.0.16"
+            title: "My Custom API"
+            description: "API documentation for my custom endpoints"
 
     # Digital Experience Setup Tasks
     create_experience:
