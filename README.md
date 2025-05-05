@@ -103,7 +103,7 @@ This will:
 - Return job status information while processing runs in the background
 
 > [!Tip]
-> Automating `OpenAPIParser.parseClasses()` can make for a great addition to your existing CI pipeline :)
+> Automating spec generation via `cci task run generate_spec --org <alias>` can make for a great addition to your existing CI pipeline :)
 
 ### 3. Download the resulting StaticResource from your Org
 
