@@ -4,7 +4,7 @@ OpenAPI Unlocked brings the power of OpenAPI (Swagger) documentation to Salesfor
 
 ## Overview
 
-OpenAPI Unlocked allows Salesforce developers to add simple annotations to their Apex classes that automatically generate standardized OpenAPI (Swagger) documentation. Publish your API documentation directly to Experience Cloud sites (experimental) and give your integration partners the gift of clear, interactive documentation.
+OpenAPI Unlocked allows Salesforce developers to add simple annotations to their `@RestResource` Apex classes that automatically generate standardized OpenAPI (Swagger) documentation. Publish your API documentation directly to Experience Cloud sites (experimental) and give your integration partners the gift of clear, interactive documentation.
 
 ## Key Features
 
