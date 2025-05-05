@@ -27,6 +27,24 @@ tasks:
         options:
             required_org_code_coverage_percent: 75
 
+    deploy_pre:
+        options:
+            transforms:
+                - transform: find_replace
+                  options:
+                      patterns:
+                          - find: "ORG_DOMAIN"
+                            inject_org_url: True
+
+    deploy:
+        options:
+            transforms:
+                - transform: find_replace
+                  options:
+                      patterns:
+                          - find: "ORG_DOMAIN"
+                            inject_org_url: True
+
     # Digital Experience Setup Tasks
     create_experience:
         group: "experience"

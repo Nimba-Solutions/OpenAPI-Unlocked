@@ -3,9 +3,9 @@
     <contactEmail>hello@nimbasolutions.com</contactEmail>
     <label>OpenAPI Unlocked</label>
     <oauthConfig>
-        <callbackUrl>https://oauth.pstmn.io/v1/callback
-https://oauth.pstmn.io/v1/browser-callback</callbackUrl>
-        <!-- <consumerKey>3MVG9qOtrzqonpGMUSn4gBYFwh7gROD2IUVyCGZlUQOQyHH7WbO8Gg9.6lGw3H16hvuVZhrOZ8V1OCVPyqHOg</consumerKey> -->
+        <callbackUrl>ORG_DOMAIN/services/oauth2/success
+ORG_DOMAIN/lightning/n/SwaggerUI</callbackUrl>
+        <consumerKey>3MVG9U6cXtLQ6pLV6I8lxlImz1Z29rZvOLD4a9TVZGycZF1bufBICP96yaPzyTbPlrKLVcN357nNxMMH1K6C4</consumerKey>
         <isAdminApproved>false</isAdminApproved>
         <isClientCredentialEnabled>false</isClientCredentialEnabled>
         <isCodeCredentialEnabled>true</isCodeCredentialEnabled>
