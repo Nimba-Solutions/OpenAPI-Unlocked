@@ -17,7 +17,7 @@ OpenAPI Unlocked allows Salesforce developers to add simple annotations to their
 
 ## Basic Usage
 
-### 1. Add Swagger annotations to your Apex classes:
+### 1. Add Swagger annotations to your `@RestResource` Apex classes:
 
 ```apex
 /**
@@ -86,7 +86,7 @@ global with sharing class AccountAPI {
 
 ### 2. Run `OpenAPIParser.parseClasses()`
 
-Generate the OpenAPI documentation by running this static method in Anonymous Apex:
+Generate the OpenAPI documentation by running this static method in Anonymous Apex.
 
 ```apex
 // Basic usage
@@ -101,6 +101,9 @@ This will:
 - Automatically register and include all referenced schemas
 - Store results in one or many static resource
 - Return job status information while processing runs in the background
+
+> [!Tip]
+> Automating `OpenAPIParser.parseClasses()` can make for a great addition to your existing CI pipeline :)
 
 ### 3. Download the resulting StaticResource from your Org
 
