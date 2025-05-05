@@ -54,26 +54,6 @@ tasks:
             data_files:
                 - "unpackaged/config/users/owner.json"
 
-    retrieve_experience_bundle:
-        description: Retrieve Experience Bundle
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        options:
-            command: "force:mdapi:retrieve -k unpackaged/config/experience/package.xml -r unpackaged/config/experience/temp --json --zipfilename experience.zip"
-
-    unzip_experience_bundle:
-        description: Unzip Experience Bundle
-        class_path: cumulusci.tasks.command.Command
-        group: Experience
-        options:
-            command: "unzip -o unpackaged/config/experience/temp/experience.zip -d unpackaged/config/experience/temp && rm -R unpackaged/config/experience/temp/experience.zip"
-
-    move_experience_bundle:
-        description: Move Experience Bundle to src directory
-        class_path: cumulusci.tasks.command.Command
-        group: Experience
-        options:
-            command: "mv unpackaged/config/experience/temp/unpackaged/experiences unpackaged/config/experience/src/ && rm -R unpackaged/config/experience/temp"
-
     deploy_experience_cloud:
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
@@ -112,13 +92,3 @@ flows:
                 task: deploy_experience_cloud
             3:
                 task: publish_experience
-
-    # Digital Experience Fetch Flows
-    fetch_experience:
-        steps:
-            1:
-                task: retrieve_experience_bundle
-            2:
-                task: unzip_experience_bundle
-            3:
-                task: move_experience_bundle
