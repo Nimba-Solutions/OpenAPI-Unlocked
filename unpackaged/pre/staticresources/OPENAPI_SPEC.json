@@ -1,858 +1,904 @@
 {
-  "security" : [ {
-    "oauth2" : [ "api" ]
-  } ],
-  "components" : {
-    "schemas" : {
-      "TestAPI.TestRequest" : {
-        "properties" : {
-          "nested" : {
-            "type" : "string"
+  "security": [
+    {
+      "oauth2": [
+        "api"
+      ]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "TestAPI.TestRequest": {
+        "properties": {
+          "nested": {
+            "type": "string"
           },
-          "isActive" : {
-            "type" : "boolean"
+          "isActive": {
+            "type": "boolean"
           },
-          "count" : {
-            "type" : "number"
+          "count": {
+            "type": "number"
           },
-          "name" : {
-            "type" : "string"
+          "name": {
+            "type": "string"
           }
         },
-        "type" : "object"
+        "type": "object"
       },
-      "TestAPI.TestResponse" : {
-        "properties" : {
-          "nested" : {
-            "type" : "string"
+      "TestAPI.TestResponse": {
+        "properties": {
+          "nested": {
+            "type": "string"
           },
-          "isActive" : {
-            "type" : "boolean"
+          "isActive": {
+            "type": "boolean"
           },
-          "count" : {
-            "type" : "number"
+          "count": {
+            "type": "number"
           },
-          "name" : {
-            "type" : "string"
+          "name": {
+            "type": "string"
           }
         },
-        "type" : "object"
+        "type": "object"
       },
-      "Contact" : {
-        "properties" : {
-          "BuyerAttributes" : {
-            "description" : "Buyer Attributes",
-            "type" : "string"
-          },
-          "ContactSource" : {
-            "description" : "Creation Source",
-            "type" : "string"
-          },
-          "GenderIdentity" : {
-            "description" : "Gender Identity",
-            "type" : "string"
-          },
-          "Pronouns" : {
-            "description" : "Pronouns",
-            "type" : "string"
-          },
-          "IndividualId" : {
-            "description" : "Individual ID",
-            "type" : "string"
-          },
-          "CleanStatus" : {
-            "description" : "Clean Status",
-            "type" : "string"
-          },
-          "JigsawContactId" : {
-            "description" : "Jigsaw Contact ID",
-            "type" : "string"
-          },
-          "Jigsaw" : {
-            "description" : "Data.com Key",
-            "type" : "string"
-          },
-          "PhotoUrl" : {
-            "description" : "Photo URL",
-            "type" : "string"
-          },
-          "IsEmailBounced" : {
-            "description" : "Is Email Bounced",
-            "type" : "boolean"
-          },
-          "EmailBouncedDate" : {
-            "description" : "Email Bounced Date",
-            "type" : "string"
-          },
-          "EmailBouncedReason" : {
-            "description" : "Email Bounced Reason",
-            "type" : "string"
-          },
-          "LastReferencedDate" : {
-            "description" : "Last Referenced Date",
-            "type" : "string"
-          },
-          "LastViewedDate" : {
-            "description" : "Last Viewed Date",
-            "type" : "string"
-          },
-          "LastCUUpdateDate" : {
-            "description" : "Last Stay-in-Touch Save Date",
-            "type" : "string"
-          },
-          "LastCURequestDate" : {
-            "description" : "Last Stay-in-Touch Request Date",
-            "type" : "string"
-          },
-          "LastActivityDate" : {
-            "description" : "Last Activity",
-            "type" : "string"
-          },
-          "SystemModstamp" : {
-            "description" : "System Modstamp",
-            "type" : "string"
-          },
-          "LastModifiedById" : {
-            "description" : "Last Modified By ID",
-            "type" : "string"
-          },
-          "LastModifiedDate" : {
-            "description" : "Last Modified Date",
-            "type" : "string"
-          },
-          "CreatedById" : {
-            "description" : "Created By ID",
-            "type" : "string"
-          },
-          "CreatedDate" : {
-            "description" : "Created Date",
-            "type" : "string"
-          },
-          "DoNotCall" : {
-            "description" : "Do Not Call",
-            "type" : "boolean"
-          },
-          "HasOptedOutOfFax" : {
-            "description" : "Fax Opt Out",
-            "type" : "boolean"
-          },
-          "HasOptedOutOfEmail" : {
-            "description" : "Email Opt Out",
-            "type" : "boolean"
-          },
-          "OwnerId" : {
-            "description" : "Owner ID",
-            "type" : "string"
-          },
-          "Description" : {
-            "description" : "Contact Description",
-            "type" : "string"
-          },
-          "Birthdate" : {
-            "description" : "Birthdate",
-            "type" : "string"
-          },
-          "LeadSource" : {
-            "description" : "Lead Source",
-            "type" : "string"
-          },
-          "AssistantName" : {
-            "description" : "Assistant's Name",
-            "type" : "string"
-          },
-          "Department" : {
-            "description" : "Department",
-            "type" : "string"
-          },
-          "Title" : {
-            "description" : "Title",
-            "type" : "string"
-          },
-          "Email" : {
-            "description" : "Email",
-            "type" : "string"
-          },
-          "ReportsToId" : {
-            "description" : "Reports To ID",
-            "type" : "string"
-          },
-          "AssistantPhone" : {
-            "description" : "Asst. Phone",
-            "type" : "string"
-          },
-          "OtherPhone" : {
-            "description" : "Other Phone",
-            "type" : "string"
-          },
-          "HomePhone" : {
-            "description" : "Home Phone",
-            "type" : "string"
-          },
-          "MobilePhone" : {
-            "description" : "Mobile Phone",
-            "type" : "string"
-          },
-          "Fax" : {
-            "description" : "Business Fax",
-            "type" : "string"
-          },
-          "Phone" : {
-            "description" : "Business Phone",
-            "type" : "string"
-          },
-          "MailingAddress" : {
-            "description" : "Mailing Address",
-            "type" : "string"
-          },
-          "MailingGeocodeAccuracy" : {
-            "description" : "Mailing Geocode Accuracy",
-            "type" : "string"
-          },
-          "MailingLongitude" : {
-            "description" : "Mailing Longitude",
-            "type" : "number"
-          },
-          "MailingLatitude" : {
-            "description" : "Mailing Latitude",
-            "type" : "number"
-          },
-          "MailingCountry" : {
-            "description" : "Mailing Country",
-            "type" : "string"
-          },
-          "MailingPostalCode" : {
-            "description" : "Mailing Zip/Postal Code",
-            "type" : "string"
-          },
-          "MailingState" : {
-            "description" : "Mailing State/Province",
-            "type" : "string"
-          },
-          "MailingCity" : {
-            "description" : "Mailing City",
-            "type" : "string"
-          },
-          "MailingStreet" : {
-            "description" : "Mailing Street",
-            "type" : "string"
-          },
-          "OtherAddress" : {
-            "description" : "Other Address",
-            "type" : "string"
-          },
-          "OtherGeocodeAccuracy" : {
-            "description" : "Other Geocode Accuracy",
-            "type" : "string"
-          },
-          "OtherLongitude" : {
-            "description" : "Other Longitude",
-            "type" : "number"
-          },
-          "OtherLatitude" : {
-            "description" : "Other Latitude",
-            "type" : "number"
-          },
-          "OtherCountry" : {
-            "description" : "Other Country",
-            "type" : "string"
-          },
-          "OtherPostalCode" : {
-            "description" : "Other Zip/Postal Code",
-            "type" : "string"
-          },
-          "OtherState" : {
-            "description" : "Other State/Province",
-            "type" : "string"
-          },
-          "OtherCity" : {
-            "description" : "Other City",
-            "type" : "string"
-          },
-          "OtherStreet" : {
-            "description" : "Other Street",
-            "type" : "string"
-          },
-          "Name" : {
-            "description" : "Full Name",
-            "type" : "string"
-          },
-          "Salutation" : {
-            "description" : "Salutation",
-            "type" : "string"
-          },
-          "FirstName" : {
-            "description" : "First Name",
-            "type" : "string"
-          },
-          "LastName" : {
-            "description" : "Last Name",
-            "type" : "string"
-          },
-          "AccountId" : {
-            "description" : "Account ID",
-            "type" : "string"
-          },
-          "MasterRecordId" : {
-            "description" : "Master Record ID",
-            "type" : "string"
-          },
-          "IsDeleted" : {
-            "description" : "Deleted",
-            "type" : "boolean"
-          },
-          "Id" : {
-            "description" : "Contact ID",
-            "type" : "string"
+      "Contact": {
+        "properties": {
+          "BuyerAttributes": {
+            "description": "Buyer Attributes",
+            "type": "string"
+          },
+          "ContactSource": {
+            "description": "Creation Source",
+            "type": "string"
+          },
+          "GenderIdentity": {
+            "description": "Gender Identity",
+            "type": "string"
+          },
+          "Pronouns": {
+            "description": "Pronouns",
+            "type": "string"
+          },
+          "IndividualId": {
+            "description": "Individual ID",
+            "type": "string"
+          },
+          "CleanStatus": {
+            "description": "Clean Status",
+            "type": "string"
+          },
+          "JigsawContactId": {
+            "description": "Jigsaw Contact ID",
+            "type": "string"
+          },
+          "Jigsaw": {
+            "description": "Data.com Key",
+            "type": "string"
+          },
+          "PhotoUrl": {
+            "description": "Photo URL",
+            "type": "string"
+          },
+          "IsEmailBounced": {
+            "description": "Is Email Bounced",
+            "type": "boolean"
+          },
+          "EmailBouncedDate": {
+            "description": "Email Bounced Date",
+            "type": "string"
+          },
+          "EmailBouncedReason": {
+            "description": "Email Bounced Reason",
+            "type": "string"
+          },
+          "LastReferencedDate": {
+            "description": "Last Referenced Date",
+            "type": "string"
+          },
+          "LastViewedDate": {
+            "description": "Last Viewed Date",
+            "type": "string"
+          },
+          "LastCUUpdateDate": {
+            "description": "Last Stay-in-Touch Save Date",
+            "type": "string"
+          },
+          "LastCURequestDate": {
+            "description": "Last Stay-in-Touch Request Date",
+            "type": "string"
+          },
+          "LastActivityDate": {
+            "description": "Last Activity",
+            "type": "string"
+          },
+          "SystemModstamp": {
+            "description": "System Modstamp",
+            "type": "string"
+          },
+          "LastModifiedById": {
+            "description": "Last Modified By ID",
+            "type": "string"
+          },
+          "LastModifiedDate": {
+            "description": "Last Modified Date",
+            "type": "string"
+          },
+          "CreatedById": {
+            "description": "Created By ID",
+            "type": "string"
+          },
+          "CreatedDate": {
+            "description": "Created Date",
+            "type": "string"
+          },
+          "DoNotCall": {
+            "description": "Do Not Call",
+            "type": "boolean"
+          },
+          "HasOptedOutOfFax": {
+            "description": "Fax Opt Out",
+            "type": "boolean"
+          },
+          "HasOptedOutOfEmail": {
+            "description": "Email Opt Out",
+            "type": "boolean"
+          },
+          "OwnerId": {
+            "description": "Owner ID",
+            "type": "string"
+          },
+          "Description": {
+            "description": "Contact Description",
+            "type": "string"
+          },
+          "Birthdate": {
+            "description": "Birthdate",
+            "type": "string"
+          },
+          "LeadSource": {
+            "description": "Lead Source",
+            "type": "string"
+          },
+          "AssistantName": {
+            "description": "Assistant's Name",
+            "type": "string"
+          },
+          "Department": {
+            "description": "Department",
+            "type": "string"
+          },
+          "Title": {
+            "description": "Title",
+            "type": "string"
+          },
+          "Email": {
+            "description": "Email",
+            "type": "string"
+          },
+          "ReportsToId": {
+            "description": "Reports To ID",
+            "type": "string"
+          },
+          "AssistantPhone": {
+            "description": "Asst. Phone",
+            "type": "string"
+          },
+          "OtherPhone": {
+            "description": "Other Phone",
+            "type": "string"
+          },
+          "HomePhone": {
+            "description": "Home Phone",
+            "type": "string"
+          },
+          "MobilePhone": {
+            "description": "Mobile Phone",
+            "type": "string"
+          },
+          "Fax": {
+            "description": "Business Fax",
+            "type": "string"
+          },
+          "Phone": {
+            "description": "Business Phone",
+            "type": "string"
+          },
+          "MailingAddress": {
+            "description": "Mailing Address",
+            "type": "string"
+          },
+          "MailingGeocodeAccuracy": {
+            "description": "Mailing Geocode Accuracy",
+            "type": "string"
+          },
+          "MailingLongitude": {
+            "description": "Mailing Longitude",
+            "type": "number"
+          },
+          "MailingLatitude": {
+            "description": "Mailing Latitude",
+            "type": "number"
+          },
+          "MailingCountry": {
+            "description": "Mailing Country",
+            "type": "string"
+          },
+          "MailingPostalCode": {
+            "description": "Mailing Zip/Postal Code",
+            "type": "string"
+          },
+          "MailingState": {
+            "description": "Mailing State/Province",
+            "type": "string"
+          },
+          "MailingCity": {
+            "description": "Mailing City",
+            "type": "string"
+          },
+          "MailingStreet": {
+            "description": "Mailing Street",
+            "type": "string"
+          },
+          "OtherAddress": {
+            "description": "Other Address",
+            "type": "string"
+          },
+          "OtherGeocodeAccuracy": {
+            "description": "Other Geocode Accuracy",
+            "type": "string"
+          },
+          "OtherLongitude": {
+            "description": "Other Longitude",
+            "type": "number"
+          },
+          "OtherLatitude": {
+            "description": "Other Latitude",
+            "type": "number"
+          },
+          "OtherCountry": {
+            "description": "Other Country",
+            "type": "string"
+          },
+          "OtherPostalCode": {
+            "description": "Other Zip/Postal Code",
+            "type": "string"
+          },
+          "OtherState": {
+            "description": "Other State/Province",
+            "type": "string"
+          },
+          "OtherCity": {
+            "description": "Other City",
+            "type": "string"
+          },
+          "OtherStreet": {
+            "description": "Other Street",
+            "type": "string"
+          },
+          "Name": {
+            "description": "Full Name",
+            "type": "string"
+          },
+          "Salutation": {
+            "description": "Salutation",
+            "type": "string"
+          },
+          "FirstName": {
+            "description": "First Name",
+            "type": "string"
+          },
+          "LastName": {
+            "description": "Last Name",
+            "type": "string"
+          },
+          "AccountId": {
+            "description": "Account ID",
+            "type": "string"
+          },
+          "MasterRecordId": {
+            "description": "Master Record ID",
+            "type": "string"
+          },
+          "IsDeleted": {
+            "description": "Deleted",
+            "type": "boolean"
+          },
+          "Id": {
+            "description": "Contact ID",
+            "type": "string"
           }
         },
-        "type" : "object"
+        "type": "object"
       },
-      "Account" : {
-        "properties" : {
-          "Tier" : {
-            "description" : "Einstein Account Tier",
-            "type" : "string"
+      "Account": {
+        "properties": {
+          "Tier": {
+            "description": "Einstein Account Tier",
+            "type": "string"
           },
-          "OperatingHoursId" : {
-            "description" : "Operating Hour ID",
-            "type" : "string"
+          "OperatingHoursId": {
+            "description": "Operating Hour ID",
+            "type": "string"
           },
-          "DandbCompanyId" : {
-            "description" : "D&B Company ID",
-            "type" : "string"
+          "DandbCompanyId": {
+            "description": "D&B Company ID",
+            "type": "string"
           },
-          "SicDesc" : {
-            "description" : "SIC Description",
-            "type" : "string"
+          "SicDesc": {
+            "description": "SIC Description",
+            "type": "string"
           },
-          "YearStarted" : {
-            "description" : "Year Started",
-            "type" : "string"
+          "YearStarted": {
+            "description": "Year Started",
+            "type": "string"
           },
-          "NaicsDesc" : {
-            "description" : "NAICS Description",
-            "type" : "string"
+          "NaicsDesc": {
+            "description": "NAICS Description",
+            "type": "string"
           },
-          "NaicsCode" : {
-            "description" : "NAICS Code",
-            "type" : "string"
+          "NaicsCode": {
+            "description": "NAICS Code",
+            "type": "string"
           },
-          "Tradestyle" : {
-            "description" : "Tradestyle",
-            "type" : "string"
+          "Tradestyle": {
+            "description": "Tradestyle",
+            "type": "string"
           },
-          "DunsNumber" : {
-            "description" : "D-U-N-S Number",
-            "type" : "string"
+          "DunsNumber": {
+            "description": "D-U-N-S Number",
+            "type": "string"
           },
-          "AccountSource" : {
-            "description" : "Account Source",
-            "type" : "string"
+          "AccountSource": {
+            "description": "Account Source",
+            "type": "string"
           },
-          "CleanStatus" : {
-            "description" : "Clean Status",
-            "type" : "string"
+          "CleanStatus": {
+            "description": "Clean Status",
+            "type": "string"
           },
-          "JigsawCompanyId" : {
-            "description" : "Jigsaw Company ID",
-            "type" : "string"
+          "JigsawCompanyId": {
+            "description": "Jigsaw Company ID",
+            "type": "string"
           },
-          "Jigsaw" : {
-            "description" : "Data.com Key",
-            "type" : "string"
+          "Jigsaw": {
+            "description": "Data.com Key",
+            "type": "string"
           },
-          "LastReferencedDate" : {
-            "description" : "Last Referenced Date",
-            "type" : "string"
+          "LastReferencedDate": {
+            "description": "Last Referenced Date",
+            "type": "string"
           },
-          "LastViewedDate" : {
-            "description" : "Last Viewed Date",
-            "type" : "string"
+          "LastViewedDate": {
+            "description": "Last Viewed Date",
+            "type": "string"
           },
-          "LastActivityDate" : {
-            "description" : "Last Activity",
-            "type" : "string"
+          "LastActivityDate": {
+            "description": "Last Activity",
+            "type": "string"
           },
-          "SystemModstamp" : {
-            "description" : "System Modstamp",
-            "type" : "string"
+          "SystemModstamp": {
+            "description": "System Modstamp",
+            "type": "string"
           },
-          "LastModifiedById" : {
-            "description" : "Last Modified By ID",
-            "type" : "string"
+          "LastModifiedById": {
+            "description": "Last Modified By ID",
+            "type": "string"
           },
-          "LastModifiedDate" : {
-            "description" : "Last Modified Date",
-            "type" : "string"
+          "LastModifiedDate": {
+            "description": "Last Modified Date",
+            "type": "string"
           },
-          "CreatedById" : {
-            "description" : "Created By ID",
-            "type" : "string"
+          "CreatedById": {
+            "description": "Created By ID",
+            "type": "string"
           },
-          "CreatedDate" : {
-            "description" : "Created Date",
-            "type" : "string"
+          "CreatedDate": {
+            "description": "Created Date",
+            "type": "string"
           },
-          "OwnerId" : {
-            "description" : "Owner ID",
-            "type" : "string"
+          "OwnerId": {
+            "description": "Owner ID",
+            "type": "string"
           },
-          "Site" : {
-            "description" : "Account Site",
-            "type" : "string"
+          "Site": {
+            "description": "Account Site",
+            "type": "string"
           },
-          "Rating" : {
-            "description" : "Account Rating",
-            "type" : "string"
+          "Rating": {
+            "description": "Account Rating",
+            "type": "string"
           },
-          "Description" : {
-            "description" : "Account Description",
-            "type" : "string"
+          "Description": {
+            "description": "Account Description",
+            "type": "string"
           },
-          "TickerSymbol" : {
-            "description" : "Ticker Symbol",
-            "type" : "string"
+          "TickerSymbol": {
+            "description": "Ticker Symbol",
+            "type": "string"
           },
-          "Ownership" : {
-            "description" : "Ownership",
-            "type" : "string"
+          "Ownership": {
+            "description": "Ownership",
+            "type": "string"
           },
-          "NumberOfEmployees" : {
-            "description" : "Employees",
-            "type" : "number"
+          "NumberOfEmployees": {
+            "description": "Employees",
+            "type": "number"
           },
-          "AnnualRevenue" : {
-            "description" : "Annual Revenue",
-            "type" : "number"
+          "AnnualRevenue": {
+            "description": "Annual Revenue",
+            "type": "number"
           },
-          "Industry" : {
-            "description" : "Industry",
-            "type" : "string"
+          "Industry": {
+            "description": "Industry",
+            "type": "string"
           },
-          "Sic" : {
-            "description" : "SIC Code",
-            "type" : "string"
+          "Sic": {
+            "description": "SIC Code",
+            "type": "string"
           },
-          "PhotoUrl" : {
-            "description" : "Photo URL",
-            "type" : "string"
+          "PhotoUrl": {
+            "description": "Photo URL",
+            "type": "string"
           },
-          "Website" : {
-            "description" : "Website",
-            "type" : "string"
+          "Website": {
+            "description": "Website",
+            "type": "string"
           },
-          "AccountNumber" : {
-            "description" : "Account Number",
-            "type" : "string"
+          "AccountNumber": {
+            "description": "Account Number",
+            "type": "string"
           },
-          "Fax" : {
-            "description" : "Account Fax",
-            "type" : "string"
+          "Fax": {
+            "description": "Account Fax",
+            "type": "string"
           },
-          "Phone" : {
-            "description" : "Account Phone",
-            "type" : "string"
+          "Phone": {
+            "description": "Account Phone",
+            "type": "string"
           },
-          "ShippingAddress" : {
-            "description" : "Shipping Address",
-            "type" : "string"
+          "ShippingAddress": {
+            "description": "Shipping Address",
+            "type": "string"
           },
-          "ShippingGeocodeAccuracy" : {
-            "description" : "Shipping Geocode Accuracy",
-            "type" : "string"
+          "ShippingGeocodeAccuracy": {
+            "description": "Shipping Geocode Accuracy",
+            "type": "string"
           },
-          "ShippingLongitude" : {
-            "description" : "Shipping Longitude",
-            "type" : "number"
+          "ShippingLongitude": {
+            "description": "Shipping Longitude",
+            "type": "number"
           },
-          "ShippingLatitude" : {
-            "description" : "Shipping Latitude",
-            "type" : "number"
+          "ShippingLatitude": {
+            "description": "Shipping Latitude",
+            "type": "number"
           },
-          "ShippingCountry" : {
-            "description" : "Shipping Country",
-            "type" : "string"
+          "ShippingCountry": {
+            "description": "Shipping Country",
+            "type": "string"
           },
-          "ShippingPostalCode" : {
-            "description" : "Shipping Zip/Postal Code",
-            "type" : "string"
+          "ShippingPostalCode": {
+            "description": "Shipping Zip/Postal Code",
+            "type": "string"
           },
-          "ShippingState" : {
-            "description" : "Shipping State/Province",
-            "type" : "string"
+          "ShippingState": {
+            "description": "Shipping State/Province",
+            "type": "string"
           },
-          "ShippingCity" : {
-            "description" : "Shipping City",
-            "type" : "string"
+          "ShippingCity": {
+            "description": "Shipping City",
+            "type": "string"
           },
-          "ShippingStreet" : {
-            "description" : "Shipping Street",
-            "type" : "string"
+          "ShippingStreet": {
+            "description": "Shipping Street",
+            "type": "string"
           },
-          "BillingAddress" : {
-            "description" : "Billing Address",
-            "type" : "string"
+          "BillingAddress": {
+            "description": "Billing Address",
+            "type": "string"
           },
-          "BillingGeocodeAccuracy" : {
-            "description" : "Billing Geocode Accuracy",
-            "type" : "string"
+          "BillingGeocodeAccuracy": {
+            "description": "Billing Geocode Accuracy",
+            "type": "string"
           },
-          "BillingLongitude" : {
-            "description" : "Billing Longitude",
-            "type" : "number"
+          "BillingLongitude": {
+            "description": "Billing Longitude",
+            "type": "number"
           },
-          "BillingLatitude" : {
-            "description" : "Billing Latitude",
-            "type" : "number"
+          "BillingLatitude": {
+            "description": "Billing Latitude",
+            "type": "number"
           },
-          "BillingCountry" : {
-            "description" : "Billing Country",
-            "type" : "string"
+          "BillingCountry": {
+            "description": "Billing Country",
+            "type": "string"
           },
-          "BillingPostalCode" : {
-            "description" : "Billing Zip/Postal Code",
-            "type" : "string"
+          "BillingPostalCode": {
+            "description": "Billing Zip/Postal Code",
+            "type": "string"
           },
-          "BillingState" : {
-            "description" : "Billing State/Province",
-            "type" : "string"
+          "BillingState": {
+            "description": "Billing State/Province",
+            "type": "string"
           },
-          "BillingCity" : {
-            "description" : "Billing City",
-            "type" : "string"
+          "BillingCity": {
+            "description": "Billing City",
+            "type": "string"
           },
-          "BillingStreet" : {
-            "description" : "Billing Street",
-            "type" : "string"
+          "BillingStreet": {
+            "description": "Billing Street",
+            "type": "string"
           },
-          "ParentId" : {
-            "description" : "Parent Account ID",
-            "type" : "string"
+          "ParentId": {
+            "description": "Parent Account ID",
+            "type": "string"
           },
-          "Type" : {
-            "description" : "Account Type",
-            "type" : "string"
+          "Type": {
+            "description": "Account Type",
+            "type": "string"
           },
-          "Name" : {
-            "description" : "Account Name",
-            "type" : "string"
+          "Name": {
+            "description": "Account Name",
+            "type": "string"
           },
-          "MasterRecordId" : {
-            "description" : "Master Record ID",
-            "type" : "string"
+          "MasterRecordId": {
+            "description": "Master Record ID",
+            "type": "string"
           },
-          "IsDeleted" : {
-            "description" : "Deleted",
-            "type" : "boolean"
+          "IsDeleted": {
+            "description": "Deleted",
+            "type": "boolean"
           },
-          "Id" : {
-            "description" : "Account ID",
-            "type" : "string"
+          "Id": {
+            "description": "Account ID",
+            "type": "string"
           }
         },
-        "type" : "object"
+        "type": "object"
       }
     },
-    "securitySchemes" : {
-      "oauth2" : {
-        "flows" : {
-          "authorizationCode" : {
-            "scopes" : {
-              "offline_access" : "Access your data anytime (offline_access)",
-              "refresh_token" : "Allow access to your data via the Web (refresh_token)",
-              "api" : "Access and manage your data (api)"
+    "securitySchemes": {
+      "oauth2": {
+        "flows": {
+          "authorizationCode": {
+            "scopes": {
+              "offline_access": "Access your data anytime (offline_access)",
+              "refresh_token": "Allow access to your data via the Web (refresh_token)",
+              "api": "Access and manage your data (api)"
             },
-            "tokenUrl" : "https://drive-enterprise-8104-dev-ed.scratch.my.salesforce.com/services/oauth2/token",
-            "authorizationUrl" : "https://drive-enterprise-8104-dev-ed.scratch.my.salesforce.com/services/oauth2/authorize"
+            "tokenUrl": "ORG_DOMAIN/services/oauth2/token",
+            "authorizationUrl": "ORG_DOMAIN/services/oauth2/authorize"
           }
         },
-        "type" : "oauth2"
+        "type": "oauth2"
       }
     }
   },
-  "paths" : {
-    "/test" : {
-      "post" : {
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TestAPI.TestResponse"
+  "paths": {
+    "/test": {
+      "post": {
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestAPI.TestResponse"
                 }
               }
             },
-            "description" : "Test data created successfully"
+            "description": "Test data created successfully"
           }
         },
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/TestAPI.TestRequest"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestAPI.TestRequest"
               }
             }
           },
-          "description" : "Test data to create",
-          "required" : true
+          "description": "Test data to create",
+          "required": true
         },
-        "security" : [ {
-          "oauth2" : [ "write:test" ]
-        } ],
-        "tags" : [ "Test" ],
-        "description" : "Creates test data with various property patterns",
-        "summary" : "Create test data",
-        "operationId" : "createTest"
+        "security": [
+          {
+            "oauth2": [
+              "write:test"
+            ]
+          }
+        ],
+        "tags": [
+          "Test"
+        ],
+        "description": "Creates test data with various property patterns",
+        "summary": "Create test data",
+        "operationId": "createTest"
       }
     },
-    "/test/getTest" : {
-      "get" : {
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TestAPI.TestResponse"
+    "/test/getTest": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestAPI.TestResponse"
                 }
               }
             },
-            "description" : "Test data retrieved successfully"
+            "description": "Test data retrieved successfully"
           }
         },
-        "security" : [ {
-          "oauth2" : [ "read:test" ]
-        } ],
-        "tags" : [ "Test" ],
-        "description" : "Retrieves test data with various property patterns",
-        "summary" : "Get test data",
-        "operationId" : "getTest"
+        "security": [
+          {
+            "oauth2": [
+              "read:test"
+            ]
+          }
+        ],
+        "tags": [
+          "Test"
+        ],
+        "description": "Retrieves test data with various property patterns",
+        "summary": "Get test data",
+        "operationId": "getTest"
       }
     },
-    "/contact" : {
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "Invalid input"
+    "/contact": {
+      "post": {
+        "responses": {
+          "400": {
+            "description": "Invalid input"
           },
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Contact"
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
                 }
               }
             },
-            "description" : "Contact created successfully"
+            "description": "Contact created successfully"
           }
         },
-        "tags" : [ "Contact" ],
-        "description" : "Creates a new contact record",
-        "summary" : "Create a new contact",
-        "operationId" : "createContact"
+        "tags": [
+          "Contact"
+        ],
+        "description": "Creates a new contact record",
+        "summary": "Create a new contact",
+        "operationId": "createContact"
       }
     },
-    "/contact/{id}" : {
-      "delete" : {
-        "responses" : {
-          "404" : {
-            "description" : "Contact not found"
+    "/contact/{id}": {
+      "delete": {
+        "responses": {
+          "404": {
+            "description": "Contact not found"
           },
-          "204" : {
-            "description" : "Contact deleted successfully"
+          "204": {
+            "description": "Contact deleted successfully"
           }
         },
-        "parameters" : [ {
-          "schema" : {
-            "type" : "string"
-          },
-          "description" : "Contact ID",
-          "required" : true,
-          "in" : "path",
-          "name" : "id"
-        } ],
-        "tags" : [ "Contact" ],
-        "description" : "Deletes a contact record",
-        "summary" : "Delete a contact",
-        "operationId" : "deleteContact"
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Contact ID",
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "tags": [
+          "Contact"
+        ],
+        "description": "Deletes a contact record",
+        "summary": "Delete a contact",
+        "operationId": "deleteContact"
       },
-      "put" : {
-        "responses" : {
-          "404" : {
-            "description" : "Contact not found"
+      "put": {
+        "responses": {
+          "404": {
+            "description": "Contact not found"
           },
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Contact"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
                 }
               }
             },
-            "description" : "Contact updated successfully"
+            "description": "Contact updated successfully"
           }
         },
-        "parameters" : [ {
-          "schema" : {
-            "type" : "string"
-          },
-          "description" : "Contact ID",
-          "required" : true,
-          "in" : "path",
-          "name" : "id"
-        } ],
-        "tags" : [ "Contact" ],
-        "description" : "Updates an existing contact record",
-        "summary" : "Update a contact",
-        "operationId" : "updateContact"
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Contact ID",
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "tags": [
+          "Contact"
+        ],
+        "description": "Updates an existing contact record",
+        "summary": "Update a contact",
+        "operationId": "updateContact"
       },
-      "get" : {
-        "responses" : {
-          "404" : {
-            "description" : "Contact not found"
+      "get": {
+        "responses": {
+          "404": {
+            "description": "Contact not found"
           },
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Contact"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
                 }
               }
             },
-            "description" : "Contact retrieved successfully"
+            "description": "Contact retrieved successfully"
           }
         },
-        "parameters" : [ {
-          "schema" : {
-            "type" : "string"
-          },
-          "description" : "Contact ID",
-          "required" : true,
-          "in" : "path",
-          "name" : "id"
-        } ],
-        "tags" : [ "Contact" ],
-        "description" : "Retrieves a contact record by its ID",
-        "summary" : "Get a contact by ID",
-        "operationId" : "getContact"
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Contact ID",
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "tags": [
+          "Contact"
+        ],
+        "description": "Retrieves a contact record by its ID",
+        "summary": "Get a contact by ID",
+        "operationId": "getContact"
       }
     },
-    "/account" : {
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "Invalid input"
+    "/account": {
+      "post": {
+        "responses": {
+          "400": {
+            "description": "Invalid input"
           },
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Account"
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
                 }
               }
             },
-            "description" : "Account created successfully"
+            "description": "Account created successfully"
           }
         },
-        "tags" : [ "Account" ],
-        "description" : "Creates a new account record",
-        "summary" : "Create a new account",
-        "operationId" : "createAccount"
+        "tags": [
+          "Account"
+        ],
+        "description": "Creates a new account record",
+        "summary": "Create a new account",
+        "operationId": "createAccount"
       }
     },
-    "/account/{id}" : {
-      "delete" : {
-        "responses" : {
-          "404" : {
-            "description" : "Account not found"
+    "/account/{id}": {
+      "delete": {
+        "responses": {
+          "404": {
+            "description": "Account not found"
           },
-          "204" : {
-            "description" : "Account deleted successfully"
+          "204": {
+            "description": "Account deleted successfully"
           }
         },
-        "parameters" : [ {
-          "schema" : {
-            "type" : "string"
-          },
-          "description" : "Account ID",
-          "required" : true,
-          "in" : "path",
-          "name" : "id"
-        } ],
-        "tags" : [ "Account" ],
-        "description" : "Deletes an account record",
-        "summary" : "Delete an account",
-        "operationId" : "deleteAccount"
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Account ID",
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "tags": [
+          "Account"
+        ],
+        "description": "Deletes an account record",
+        "summary": "Delete an account",
+        "operationId": "deleteAccount"
       },
-      "put" : {
-        "responses" : {
-          "404" : {
-            "description" : "Account not found"
+      "put": {
+        "responses": {
+          "404": {
+            "description": "Account not found"
           },
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Account"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
                 }
               }
             },
-            "description" : "Account updated successfully"
+            "description": "Account updated successfully"
           }
         },
-        "parameters" : [ {
-          "schema" : {
-            "type" : "string"
-          },
-          "description" : "Account ID",
-          "required" : true,
-          "in" : "path",
-          "name" : "id"
-        } ],
-        "tags" : [ "Account" ],
-        "description" : "Updates an existing account record",
-        "summary" : "Update an account",
-        "operationId" : "updateAccount"
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Account ID",
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "tags": [
+          "Account"
+        ],
+        "description": "Updates an existing account record",
+        "summary": "Update an account",
+        "operationId": "updateAccount"
       },
-      "get" : {
-        "responses" : {
-          "404" : {
-            "description" : "Account not found"
+      "get": {
+        "responses": {
+          "404": {
+            "description": "Account not found"
           },
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Account"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
                 }
               }
             },
-            "description" : "Account retrieved successfully"
+            "description": "Account retrieved successfully"
           }
         },
-        "parameters" : [ {
-          "schema" : {
-            "type" : "string"
-          },
-          "description" : "Account ID",
-          "required" : true,
-          "in" : "path",
-          "name" : "id"
-        } ],
-        "tags" : [ "Account" ],
-        "description" : "Retrieves an account record by its ID",
-        "summary" : "Get an account by ID",
-        "operationId" : "getAccount"
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Account ID",
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "tags": [
+          "Account"
+        ],
+        "description": "Retrieves an account record by its ID",
+        "summary": "Get an account by ID",
+        "operationId": "getAccount"
       }
     }
   },
-  "servers" : [ {
-    "description" : "Salesforce Apex REST API",
-    "url" : "https://drive-enterprise-8104-dev-ed.scratch.my.salesforce.com/services/apexrest"
-  } ],
-  "info" : {
-    "version" : "1.0.0",
-    "description" : "API for managing Account records",
-    "title" : "Account Management API"
+  "servers": [
+    {
+      "description": "Salesforce Apex REST API",
+      "url": "ORG_DOMAIN/services/apexrest"
+    }
+  ],
+  "info": {
+    "version": "1.0.0",
+    "description": "Generated by OpenAPI Unlocked",
+    "title": "Salesforce Apex REST API"
   },
-  "openapi" : "3.0.0"
+  "openapi": "3.0.0"
 }
