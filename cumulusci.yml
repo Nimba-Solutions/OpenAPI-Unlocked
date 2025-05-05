@@ -33,9 +33,9 @@ tasks:
         description: "Creates a Digital Experience site for API documentation"
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         options:
-            template: Build Your Own
-            name: OpenAPI-Unlocked
-            url_path_prefix: openapi
+            template: Build Your Own (LWR)
+            name: API
+            url_path_prefix: api
             timeout: 60000
             skip_existing: true
 
