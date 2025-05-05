@@ -44,7 +44,7 @@ tasks:
         description: Publishes the API Documentation Experience Site
         class_path: cumulusci.tasks.salesforce.PublishCommunity
         options:
-            name: api
+            name: API
 
     create_experience_owner:
         group: "experience"
