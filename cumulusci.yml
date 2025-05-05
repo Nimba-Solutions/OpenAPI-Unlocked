@@ -28,6 +28,7 @@ tasks:
             required_org_code_coverage_percent: 75
 
     deploy_pre:
+        group: "Dev/CI"
         options:
             transforms:
                 - transform: find_replace
@@ -37,6 +38,7 @@ tasks:
                             inject_org_url: True
 
     deploy:
+        group: "Dev/CI"
         options:
             transforms:
                 - transform: find_replace
@@ -44,6 +46,13 @@ tasks:
                       patterns:
                           - find: "ORG_DOMAIN"
                             inject_org_url: True
+
+    generate_spec:
+        group: "Dev/CI"
+        description: Executes an Apex script to invoke OpenAPIParser from outside of Salesforce
+        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+        options:
+            path: scripts/GenerateSpec.apex
 
     # Digital Experience Setup Tasks
     create_experience:
