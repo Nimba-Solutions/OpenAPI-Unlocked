@@ -68,6 +68,12 @@ tasks:
                 - "unpackaged/experience/users/guest.json"
 
 flows:
+    # Override standard flows to include experience cloud management
+    config_dev:
+        steps:
+            3:
+                flow: make_experience
+
     # Digital Experience Setup Flows
     make_experience:
         steps:
