@@ -96,6 +96,12 @@ tasks:
             data_files:
                 - "unpackaged/experience/users/guest.json"
 
+    retrieve_digital_experience:
+        description: "Retrieve Experience Bundle using SF CLI"
+        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+        options:
+            command: project retrieve start -m DigitalExperience
+
 flows:
     # Override standard flows to include experience cloud management
     config_dev:
