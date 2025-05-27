@@ -1,6 +1,6 @@
 <template>
-    <div class="slds-p-around_medium" style="background-color: rgb(27, 27, 27);">
-        <div class="slds-grid slds-grid_align-end slds-m-bottom_medium">
+    <div class="slds-p-around_medium">
+        <div class="slds-grid slds-grid_align-start slds-m-bottom_medium">
             <lightning-button label="Copy to Clipboard" icon-name="utility:copy" onclick={handleCopy}
                 class="slds-m-right_small">
             </lightning-button>
@@ -16,7 +16,7 @@
         </template>
 
         <template if:true={openApiSpec}>
-            <pre class="slds-p-around_medium slds-box" style="background-color: rgb(27, 27, 27); color: #d3d3d3;">
+            <pre class="slds-p-around_medium slds-box">
                 {openApiSpecString}
             </pre>
         </template>
