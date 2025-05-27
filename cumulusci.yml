@@ -100,7 +100,7 @@ tasks:
         description: "Retrieve Experience Bundle using SF CLI"
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         options:
-            command: project retrieve start -m DigitalExperience
+            command: project retrieve start -m DigitalExperience -t .dev --unzip
 
 flows:
     # Override standard flows to include experience cloud management
