@@ -1,0 +1,24 @@
+<template>
+    <div class="slds-p-around_medium" style="background-color: rgb(27, 27, 27);">
+        <div class="slds-grid slds-grid_align-end slds-m-bottom_medium">
+            <lightning-button label="Copy to Clipboard" icon-name="utility:copy" onclick={handleCopy}
+                class="slds-m-right_small">
+            </lightning-button>
+            <lightning-button label="Download JSON" icon-name="utility:download" onclick={handleDownload}>
+            </lightning-button>
+        </div>
+
+        <template if:true={error}>
+            <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+                <span class="slds-assistive-text">error</span>
+                <h2>Error loading OpenAPI spec: {error}</h2>
+            </div>
+        </template>
+
+        <template if:true={openApiSpec}>
+            <pre class="slds-p-around_medium slds-box" style="background-color: rgb(27, 27, 27); color: #d3d3d3;">
+                {openApiSpecString}
+            </pre>
+        </template>
+    </div>
+</template>
