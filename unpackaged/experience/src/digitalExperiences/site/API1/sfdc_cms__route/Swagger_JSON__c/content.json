@@ -1,0 +1,12 @@
+{
+  "type" : "sfdc_cms__route",
+  "title" : "Swagger JSON",
+  "contentBody" : {
+    "activeViewId" : "Swagger_JSON",
+    "configurationTags" : [ ],
+    "pageAccess" : "UseParent",
+    "routeType" : "custom-swagger-json",
+    "urlPrefix" : "swagger-json"
+  },
+  "urlName" : "swagger-json"
+}

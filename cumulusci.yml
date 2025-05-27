@@ -83,7 +83,7 @@ tasks:
             data_files:
                 - "unpackaged/experience/users/owner.json"
 
-    deploy_experience_cloud:
+    deploy_experience:
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
             path: "unpackaged/experience/src"
@@ -119,7 +119,7 @@ flows:
             3:
                 task: update_admin_profile
             4:
-                task: deploy_experience_cloud
+                task: deploy_experience
             5:
                 task: publish_experience
             6:
@@ -130,6 +130,6 @@ flows:
             1:
                 task: create_experience
             2:
-                task: deploy_experience_cloud
+                task: deploy_experience
             3:
                 task: publish_experience

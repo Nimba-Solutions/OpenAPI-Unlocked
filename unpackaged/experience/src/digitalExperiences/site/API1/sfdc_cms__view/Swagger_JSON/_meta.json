@@ -1,0 +1,5 @@
+{
+  "apiName" : "Swagger_JSON",
+  "type" : "sfdc_cms__view",
+  "path" : "views"
+}

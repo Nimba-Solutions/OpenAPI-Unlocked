@@ -1,0 +1,78 @@
+{
+  "type": "sfdc_cms__view",
+  "title": "Swagger",
+  "contentBody": {
+    "component": {
+      "children": [
+        {
+          "children": [
+            {
+              "attributes": {
+                "backgroundImageConfig": "",
+                "backgroundImageOverlay": "rgb(27, 27, 27)",
+                "componentSpacerSize": "",
+                "layoutDirectionDesktop": "row",
+                "layoutDirectionMobile": "column",
+                "layoutDirectionTablet": "column",
+                "maxContentWidth": "",
+                "sectionColumnGutterWidth": "0rem",
+                "sectionConfig": "{\"UUID\":\"4d32eee2-2a1d-4b76-bd1b-207cd096e971\",\"columns\":[{\"UUID\":\"eee6c425-4496-40e0-a542-be377a5e0e70\",\"columnName\":\"Column 1\",\"columnKey\":\"col1\",\"columnWidth\":\"12\",\"seedComponents\":[]}]}",
+                "sectionMinHeight": "",
+                "sectionVerticalAlign": "flex-start"
+              },
+              "children": [
+                {
+                  "children": [
+                    {
+                      "attributes": {},
+                      "definition": "c:swaggerViewer",
+                      "id": "3c3149e5-ccc9-4235-b0ad-e79771d68ae2",
+                      "type": "component"
+                    }
+                  ],
+                  "id": "eee6c425-4496-40e0-a542-be377a5e0e70",
+                  "name": "col1",
+                  "title": "Column 1",
+                  "type": "region"
+                }
+              ],
+              "definition": "community_layout:section",
+              "id": "4d32eee2-2a1d-4b76-bd1b-207cd096e971",
+              "type": "component"
+            }
+          ],
+          "id": "6bcf04c9-6a4b-49ba-8725-78ea34c6756a",
+          "name": "content",
+          "title": "Content",
+          "type": "region"
+        },
+        {
+          "children": [
+            {
+              "attributes": {
+                "customHeadTags": "",
+                "description": "",
+                "pageTitle": "swagger",
+                "recordId": "{!recordId}"
+              },
+              "definition": "community_builder:seoAssistant",
+              "id": "8e12b3f4-71c7-46e4-8050-4e1a106381bd",
+              "type": "component"
+            }
+          ],
+          "id": "e61d73e2-ad32-4d2e-9c1b-371f43fc1f53",
+          "name": "sfdcHiddenRegion",
+          "title": "sfdcHiddenRegion",
+          "type": "region"
+        }
+      ],
+      "definition": "community_layout:sldsFlexibleLayout",
+      "id": "18e802a8-a23b-4e1d-9b09-e97273d5d1c2",
+      "type": "component"
+    },
+    "dataProviders": [],
+    "themeLayoutType": "Inner",
+    "viewType": "custom-swagger"
+  },
+  "urlName": "swagger"
+}
