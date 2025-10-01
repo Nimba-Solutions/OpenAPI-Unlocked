@@ -56,6 +56,13 @@ tasks:
             title: "My Custom API"
             description: "API documentation for my custom endpoints"
 
+    deploy_examples:
+        group: "Dev/CI"
+        description: Deploys example classes
+        class_path: cumulusci.tasks.salesforce.Deploy
+        options:
+            path: "unpackaged/examples"
+
     # Digital Experience Setup Tasks
     create_experience:
         group: "experience"
@@ -127,3 +134,27 @@ flows:
                 task: deploy_experience_cloud
             3:
                 task: publish_experience
+
+### MetaDeploy Plans ##########################################################
+plans:
+    install:
+        slug: install
+        title: Install Markdown-Unlocked
+        tier: primary
+        preflight_message: "This will install Markdown-Unlocked and all of its dependencies."
+        post_install_message: "Success!"
+        error_message: "Installation failed."
+        steps:
+            1:
+                flow: install_prod
+
+    deploy_examples:
+        slug: deploy-examples
+        title: Deploy Example Classes
+        tier: secondary
+        preflight_message: "This will Deploy Example Classes that demonstrate Markdown-Unlocked."
+        post_install_message: "Success!"
+        error_message: "Deploy failed."
+        steps:
+            1:
+                task: deploy_examples
