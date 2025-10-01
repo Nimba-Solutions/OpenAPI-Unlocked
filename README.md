@@ -1,10 +1,10 @@
-# OpenAPI Unlocked
+# OpenAPI-Unlocked
 
-OpenAPI Unlocked brings the power of OpenAPI (Swagger) documentation to Salesforce development through an unlocked package. Enable your team to create beautiful, interactive API documentation with minimal effort - directly on Salesforce!
+OpenAPI-Unlocked brings the power of OpenAPI (Swagger) documentation to Salesforce development through an unlocked package. Enable your team to create beautiful, interactive API documentation with minimal effort - directly on Salesforce!
 
 ## Overview
 
-OpenAPI Unlocked allows Salesforce developers to add simple annotations to their Apex classes that automatically generate standardized OpenAPI (Swagger) documentation. Publish your API documentation directly to Experience Cloud sites and give your integration partners the gift of clear, interactive documentation.
+OpenAPI-Unlocked allows Salesforce developers to add simple annotations to their `@RestResource` Apex classes that automatically generate standardized OpenAPI (Swagger) documentation. Publish your API documentation directly to Experience Cloud sites (experimental) and give your integration partners the gift of clear, interactive documentation.
 
 ## Key Features
 
@@ -12,13 +12,12 @@ OpenAPI Unlocked allows Salesforce developers to add simple annotations to their
 - **Stay in Sync**: Documentation is generated directly from your code, so it's always up-to-date
 - **Developer Friendly**: Simple annotations that feel familiar to Java developers
 - **Complex Type Support**: Automatically generates schema definitions for SObjects and Apex-defined types
-- **Experience Cloud Ready**: Publish beautiful, interactive API documentation to your Experience Cloud sites
 - **Governor Limit Safe**: Batch processing ensures reliability with any codebase size
 - **100% Native**: Built as a Salesforce unlocked package with no external dependencies
 
 ## Basic Usage
 
-### 1. Add Swagger annotations to your Apex classes:
+### 1. Add Swagger annotations to your `@RestResource` Apex classes:
 
 ```apex
 /**
@@ -87,27 +86,34 @@ global with sharing class AccountAPI {
 
 ### 2. Run `OpenAPIParser.parseClasses()`
 
-Generate the OpenAPI documentation by running this static method in Anonymous Apex:
+Generate the OpenAPI documentation by running this static method in Anonymous Apex.
 
 ```apex
-// Basic usage
+// Parse everything parsable
 OpenAPIParser.parseClasses();
 ```
 
+// Optionally limit parsing to a specific namespace
+OpenAPIParser.parseClasses('acme');
+```
+
 This will:
-- Identify classes with OpenApi annotations
+- Identify and parse classes with OpenApi annotations
 - Automatically register and include all referenced schemas
-- Create or update a Static Resource named `OPENAPI_SPEC.json`
+- Store results in one or many static resource
 - Return job status information while processing runs in the background
 
-### 3. Download the resulting `OPENAPI_SPEC.json` from your Org's Static Resources
+> [!Tip]
+> Automating spec generation via `cci task run generate_spec --org <alias>` can make for a great addition to your existing CI pipeline :)
 
-### 4. Upload `OPENAPI_SPEC.json` into your preferred tooling (e.g. Postman, SwaggerUI)
+### 3. Download the resulting StaticResource from your Org
+
+### 4. Upload your spec into your preferred tool (e.g. Postman, SwaggerUI)
 ![image](https://github.com/user-attachments/assets/65422716-e39b-42df-af07-5f1f7edce6c1)
 
 ## Annotation Reference
 
-OpenAPI Unlocked supports the following annotations:
+OpenAPI-Unlocked supports the following annotations:
 
 | Annotation     | Level  | Description                                                      | Example                                                      |
 |----------------|--------|------------------------------------------------------------------|--------------------------------------------------------------|

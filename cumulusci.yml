@@ -27,15 +27,51 @@ tasks:
         options:
             required_org_code_coverage_percent: 75
 
+    deploy_pre:
+        group: "Dev/CI"
+        options:
+            transforms:
+                - transform: find_replace
+                  options:
+                      patterns:
+                          - find: "ORG_DOMAIN"
+                            inject_org_url: True
+
+    deploy:
+        group: "Dev/CI"
+        options:
+            transforms:
+                - transform: find_replace
+                  options:
+                      patterns:
+                          - find: "ORG_DOMAIN"
+                            inject_org_url: True
+
+    generate_spec:
+        group: "Dev/CI"
+        description: Generates OpenAPI specification from Apex classes
+        class_path: tasks.openapi_spec.GenerateOpenAPISpec
+        options:
+            version: "beta/0.3.0.16"
+            title: "My Custom API"
+            description: "API documentation for my custom endpoints"
+
+    deploy_examples:
+        group: "Dev/CI"
+        description: Deploys example classes
+        class_path: cumulusci.tasks.salesforce.Deploy
+        options:
+            path: "unpackaged/examples"
+
     # Digital Experience Setup Tasks
     create_experience:
         group: "experience"
         description: "Creates a Digital Experience site for API documentation"
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         options:
-            template: Build Your Own
-            name: OpenAPI-Unlocked
-            url_path_prefix: openapi
+            template: Build Your Own (LWR)
+            name: API
+            url_path_prefix: api
             timeout: 60000
             skip_existing: true
 
@@ -44,7 +80,7 @@ tasks:
         description: Publishes the API Documentation Experience Site
         class_path: cumulusci.tasks.salesforce.PublishCommunity
         options:
-            name: api
+            name: API
 
     create_experience_owner:
         group: "experience"
@@ -52,32 +88,12 @@ tasks:
         class_path: cumulusci.tasks.salesforce.composite.CompositeApi
         options:
             data_files:
-                - "unpackaged/config/users/owner.json"
-
-    retrieve_experience_bundle:
-        description: Retrieve Experience Bundle
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        options:
-            command: "force:mdapi:retrieve -k unpackaged/config/experience/package.xml -r unpackaged/config/experience/temp --json --zipfilename experience.zip"
-
-    unzip_experience_bundle:
-        description: Unzip Experience Bundle
-        class_path: cumulusci.tasks.command.Command
-        group: Experience
-        options:
-            command: "unzip -o unpackaged/config/experience/temp/experience.zip -d unpackaged/config/experience/temp && rm -R unpackaged/config/experience/temp/experience.zip"
-
-    move_experience_bundle:
-        description: Move Experience Bundle to src directory
-        class_path: cumulusci.tasks.command.Command
-        group: Experience
-        options:
-            command: "mv unpackaged/config/experience/temp/unpackaged/experiences unpackaged/config/experience/src/ && rm -R unpackaged/config/experience/temp"
+                - "unpackaged/experience/users/owner.json"
 
     deploy_experience_cloud:
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
-            path: "unpackaged/config/experience/src"
+            path: "unpackaged/experience/src"
 
     assign_api_guest_user_permission_set:
         group: "experience"
@@ -85,9 +101,15 @@ tasks:
         class_path: cumulusci.tasks.salesforce.composite.CompositeApi
         options:
             data_files:
-                - "unpackaged/config/users/guest.json"
+                - "unpackaged/experience/users/guest.json"
 
 flows:
+    # Override standard flows to include experience cloud management
+    config_dev:
+        steps:
+            3:
+                flow: make_experience
+
     # Digital Experience Setup Flows
     make_experience:
         steps:
@@ -113,12 +135,26 @@ flows:
             3:
                 task: publish_experience
 
-    # Digital Experience Fetch Flows
-    fetch_experience:
+### MetaDeploy Plans ##########################################################
+plans:
+    install:
+        slug: install
+        title: Install Markdown-Unlocked
+        tier: primary
+        preflight_message: "This will install Markdown-Unlocked and all of its dependencies."
+        post_install_message: "Success!"
+        error_message: "Installation failed."
         steps:
             1:
-                task: retrieve_experience_bundle
-            2:
-                task: unzip_experience_bundle
-            3:
-                task: move_experience_bundle
+                flow: install_prod
+
+    deploy_examples:
+        slug: deploy-examples
+        title: Deploy Example Classes
+        tier: secondary
+        preflight_message: "This will Deploy Example Classes that demonstrate Markdown-Unlocked."
+        post_install_message: "Success!"
+        error_message: "Deploy failed."
+        steps:
+            1:
+                task: deploy_examples
