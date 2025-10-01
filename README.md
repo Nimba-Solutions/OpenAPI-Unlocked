@@ -1,10 +1,10 @@
-# OpenAPI Unlocked
+# OpenAPI-Unlocked
 
-OpenAPI Unlocked brings the power of OpenAPI (Swagger) documentation to Salesforce development through an unlocked package. Enable your team to create beautiful, interactive API documentation with minimal effort - directly on Salesforce!
+OpenAPI-Unlocked brings the power of OpenAPI (Swagger) documentation to Salesforce development through an unlocked package. Enable your team to create beautiful, interactive API documentation with minimal effort - directly on Salesforce!
 
 ## Overview
 
-OpenAPI Unlocked allows Salesforce developers to add simple annotations to their Apex classes that automatically generate standardized OpenAPI (Swagger) documentation. Publish your API documentation directly to Experience Cloud sites (experimental) and give your integration partners the gift of clear, interactive documentation.
+OpenAPI-Unlocked allows Salesforce developers to add simple annotations to their `@RestResource` Apex classes that automatically generate standardized OpenAPI (Swagger) documentation. Publish your API documentation directly to Experience Cloud sites (experimental) and give your integration partners the gift of clear, interactive documentation.
 
 ## Key Features
 
@@ -17,7 +17,7 @@ OpenAPI Unlocked allows Salesforce developers to add simple annotations to their
 
 ## Basic Usage
 
-### 1. Add Swagger annotations to your Apex classes:
+### 1. Add Swagger annotations to your `@RestResource` Apex classes:
 
 ```apex
 /**
@@ -86,13 +86,13 @@ global with sharing class AccountAPI {
 
 ### 2. Run `OpenAPIParser.parseClasses()`
 
-Generate the OpenAPI documentation by running this static method in Anonymous Apex:
+Generate the OpenAPI documentation by running this static method in Anonymous Apex.
 
 ```apex
-// Basic usage
+// Parse everything parsable
 OpenAPIParser.parseClasses();
 
-// Optionally provide a specific namespace
+// Optionally limit parsing to a specific namespace
 OpenAPIParser.parseClasses('acme');
 ```
 
@@ -102,6 +102,9 @@ This will:
 - Store results in one or many static resource
 - Return job status information while processing runs in the background
 
+> [!Tip]
+> Automating spec generation via `cci task run generate_spec --org <alias>` can make for a great addition to your existing CI pipeline :)
+
 ### 3. Download the resulting StaticResource from your Org
 
 ### 4. Upload your spec into your preferred tool (e.g. Postman, SwaggerUI)
@@ -109,7 +112,7 @@ This will:
 
 ## Annotation Reference
 
-OpenAPI Unlocked supports the following annotations:
+OpenAPI-Unlocked supports the following annotations:
 
 | Annotation     | Level  | Description                                                      | Example                                                      |
 |----------------|--------|------------------------------------------------------------------|--------------------------------------------------------------|

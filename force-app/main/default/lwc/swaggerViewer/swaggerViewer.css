@@ -1,0 +1,14 @@
+.swagger-iframe {
+    width: 100%;
+    height: 800px;
+    border: none;
+    margin-top: 1rem;
+}
+
+.swagger-container {
+    width: 100%;
+    min-height: 800px;
+    background: white;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}

@@ -1,7 +1,18 @@
 {
   "orgName": "OpenAPI-Unlocked - Dev Org",
   "edition": "Developer",
+  "features": [
+    "Communities",
+    "DebugApex"
+  ],
   "settings": {
+    "communitiesSettings": {
+      "enableNetworksEnabled": true,
+      "enableOotbProfExtUserOpsEnable": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
+    },
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
     },
@@ -16,6 +27,9 @@
       "sessionSettings": {
         "forceRelogin": false
       }
+    },
+    "emailTemplateSettings": {
+      "enableTemplateEnhancedFolderPref": true
     },
     "languageSettings": {
       "enableTranslationWorkbench": true
