@@ -28,15 +28,8 @@ class GenerateOpenAPISpec(BaseSalesforceApiTask):
             if not version:
                 version = "1.0.0"  # Fallback default
 
-        # Build the SpecConfig constructor string
-        title = self.options.get("title", "Salesforce REST API")
-        description = self.options.get("description", "Combined REST API documentation")
-        
-        # Prepare the Apex code with proper string escaping
-        apex = f"""
-OpenAPIParser.SpecConfig config = new OpenAPIParser.SpecConfig('{title}', '{description}', '{version}');
-OpenAPIParser.parseClasses(config);
-"""
+        # Prepare the Apex code to call parseClasses directly
+        apex = "OpenAPIParser.parseClasses();"
 
         # Execute the anonymous Apex
         self.logger.info(f"Generating OpenAPI spec with version {version}")

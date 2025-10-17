@@ -51,11 +51,6 @@ tasks:
         group: "Dev/CI"
         description: Generates OpenAPI specification from Apex classes
         class_path: tasks.openapi_spec.GenerateOpenAPISpec
-        options:
-            version: "beta/0.3.0.16"
-            title: "My Custom API"
-            description: "API documentation for my custom endpoints"
-
     deploy_examples:
         group: "Dev/CI"
         description: Deploys example classes
@@ -107,7 +102,9 @@ flows:
     # Override standard flows to include experience cloud management
     config_dev:
         steps:
-            3:
+            3.1:
+                task: deploy_examples
+            3.2:
                 flow: make_experience
 
     # Digital Experience Setup Flows
@@ -148,13 +145,17 @@ plans:
             1:
                 flow: install_prod
 
-    deploy_examples:
-        slug: deploy-examples
-        title: Deploy Example Classes
+    install_full:
+        slug: install-full
+        title: Install Markdown-Unlocked and Deploy Examples
         tier: secondary
-        preflight_message: "This will Deploy Example Classes that demonstrate Markdown-Unlocked."
+        preflight_message: "This will install Markdown-Unlocked, all of its dependencies, example classes, and deploy an Experience Cloud site that demonstrates Markdown-Unlocked."
         post_install_message: "Success!"
         error_message: "Deploy failed."
         steps:
             1:
+                flow: install_prod
+            2:
                 task: deploy_examples
+            3:
+                flow: make_experience
