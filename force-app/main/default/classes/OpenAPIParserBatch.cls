@@ -242,14 +242,22 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
         // Extract method-level OpenAPI annotations
         Map<String, Object> paths = new Map<String, Object>();
         
-        // Find all method documentation blocks
-        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*\\n*\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
+        // Find all method documentation blocks - improved pattern to capture full doc block
+        // Pattern matches: /** ... */ followed by @HttpMethod and method signature
+        // Use [\\s\\S] to match any character including newlines (Apex doesn't support DOTALL)
+        Pattern methodPattern = Pattern.compile('/\\*\\*([\\s\\S]*?)\\*/\\s*\\n\\s*@(Http\\w+)\\s+[\\s\\S]*?\\s+(\\w+)\\s*\\([^)]*\\)');
         Matcher methodMatcher = methodPattern.matcher(classBody);
         
         while (methodMatcher.find()) {
-            String methodDoc = methodMatcher.group(0);
+            // Extract just the documentation block (group 0 includes the method signature)
+            // We need to extract the doc block separately
+            String fullMatch = methodMatcher.group(0);
             String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
             String methodName = methodMatcher.group(3);
+            
+            // Extract just the documentation block (everything before the @HttpMethod)
+            Integer docEndIndex = fullMatch.indexOf('@' + methodMatcher.group(2));
+            String methodDoc = fullMatch.substring(0, docEndIndex).trim();
             
             // Extract path parameters
             List<Map<String, Object>> methodParams = OpenAPIParser.extractParameters(methodDoc);

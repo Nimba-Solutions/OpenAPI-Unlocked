@@ -1,0 +1,239 @@
+{
+  "security" : [ {
+    "oauth2" : [ "api" ]
+  } ],
+  "components" : {
+    "schemas" : {
+      "TestAPI.TestRequest" : {
+        "properties" : {
+          "nested" : {
+            "type" : "string"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          },
+          "count" : {
+            "type" : "number"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "oauth2" : {
+        "flows" : {
+          "authorizationCode" : {
+            "scopes" : {
+              "offline_access" : "Access your data anytime (offline_access)",
+              "refresh_token" : "Allow access to your data via the Web (refresh_token)",
+              "api" : "Access and manage your data (api)"
+            },
+            "tokenUrl" : "https://momentum-customer-5790-dev-ed.scratch.my.salesforce.com/services/oauth2/token",
+            "authorizationUrl" : "https://momentum-customer-5790-dev-ed.scratch.my.salesforce.com/services/oauth2/authorize"
+          }
+        },
+        "type" : "oauth2"
+      }
+    }
+  },
+  "paths" : {
+    "/test" : {
+      "post" : {
+        "responses" : { },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TestAPI.TestRequest"
+              }
+            }
+          },
+          "description" : "Test data to create",
+          "required" : true
+        },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "createTest"
+      }
+    },
+    "/test/getTest" : {
+      "get" : {
+        "responses" : { },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "getTest"
+      }
+    },
+    "/contact/deleteContact" : {
+      "delete" : {
+        "responses" : { },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "deleteContact"
+      }
+    },
+    "/contact/updateContact" : {
+      "put" : {
+        "responses" : { },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "properties" : {
+                  "Phone" : {
+                    "type" : "string"
+                  },
+                  "Email" : {
+                    "type" : "string"
+                  },
+                  "LastName" : {
+                    "type" : "string"
+                  },
+                  "FirstName" : {
+                    "type" : "string"
+                  }
+                },
+                "type" : "object"
+              }
+            }
+          },
+          "description" : "Updated contact details",
+          "required" : true
+        },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "updateContact"
+      }
+    },
+    "/contact" : {
+      "post" : {
+        "responses" : { },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "properties" : {
+                  "Phone" : {
+                    "type" : "string"
+                  },
+                  "Email" : {
+                    "type" : "string"
+                  },
+                  "LastName" : {
+                    "type" : "string"
+                  },
+                  "FirstName" : {
+                    "type" : "string"
+                  }
+                },
+                "type" : "object"
+              }
+            }
+          },
+          "description" : "Contact details",
+          "required" : true
+        },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "createContact"
+      }
+    },
+    "/contact/getContact" : {
+      "get" : {
+        "responses" : { },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "getContact"
+      }
+    },
+    "/account/deleteAccount" : {
+      "delete" : {
+        "responses" : { },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "deleteAccount"
+      }
+    },
+    "/account/updateAccount" : {
+      "put" : {
+        "responses" : { },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "properties" : {
+                  "Phone" : {
+                    "type" : "string"
+                  },
+                  "Industry" : {
+                    "type" : "string"
+                  },
+                  "Name" : {
+                    "type" : "string"
+                  }
+                },
+                "type" : "object"
+              }
+            }
+          },
+          "description" : "Updated account details",
+          "required" : true
+        },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "updateAccount"
+      }
+    },
+    "/account" : {
+      "post" : {
+        "responses" : { },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "properties" : {
+                  "Phone" : {
+                    "type" : "string"
+                  },
+                  "Industry" : {
+                    "type" : "string"
+                  },
+                  "Name" : {
+                    "type" : "string"
+                  }
+                },
+                "type" : "object"
+              }
+            }
+          },
+          "description" : "Account details",
+          "required" : true
+        },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "createAccount"
+      }
+    },
+    "/account/getAccount" : {
+      "get" : {
+        "responses" : { },
+        "description" : null,
+        "summary" : null,
+        "operationId" : "getAccount"
+      }
+    }
+  },
+  "servers" : [ {
+    "description" : "Salesforce Apex REST API",
+    "url" : "https://momentum-customer-5790-dev-ed.scratch.my.salesforce.com/services/apexrest"
+  } ],
+  "info" : {
+    "version" : "1.0.0",
+    "description" : "Combined REST API documentation",
+    "title" : "Salesforce REST API"
+  },
+  "openapi" : "3.0.0"
+}

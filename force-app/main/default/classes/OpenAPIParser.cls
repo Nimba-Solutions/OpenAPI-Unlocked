@@ -138,7 +138,8 @@ public with sharing class OpenAPIParser {
      */
     public static List<Map<String, Object>> extractParameters(String doc) {
         List<Map<String, Object>> parameters = new List<Map<String, Object>>();
-        Pattern paramPattern = Pattern.compile('@param\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(.*?)(?=\\n|$)');
+        // Pattern handles both @param and * @param formats, with optional leading asterisk and spaces
+        Pattern paramPattern = Pattern.compile('\\*?\\s*@param\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(.*?)(?=\\n|\\*|$)');
         Matcher paramMatcher = paramPattern.matcher(doc);
         while (paramMatcher.find()) {
             String paramName = paramMatcher.group(1);
@@ -172,7 +173,7 @@ public with sharing class OpenAPIParser {
      * Extract operation ID from method documentation
      */
     public static String extractOperationId(String doc) {
-        Pattern opPattern = Pattern.compile('@operation\\s+(\\w+)');
+        Pattern opPattern = Pattern.compile('\\*?\\s*@operation\\s+(\\w+)');
         Matcher opMatcher = opPattern.matcher(doc);
         return opMatcher.find() ? opMatcher.group(1) : null;
     }
@@ -181,7 +182,7 @@ public with sharing class OpenAPIParser {
      * Extract summary from method documentation
      */
     public static String extractSummary(String doc) {
-        Pattern summaryPattern = Pattern.compile('@summary\\s+(.*?)(?=\\n|$)');
+        Pattern summaryPattern = Pattern.compile('\\*?\\s*@summary\\s+(.*?)(?=\\n|\\*|$)');
         Matcher summaryMatcher = summaryPattern.matcher(doc);
         return summaryMatcher.find() ? summaryMatcher.group(1).trim() : null;
     }
@@ -190,7 +191,7 @@ public with sharing class OpenAPIParser {
      * Extract description from method documentation
      */
     public static String extractDescription(String doc) {
-        Pattern descPattern = Pattern.compile('@description\\s+(.*?)(?=\\n|$)');
+        Pattern descPattern = Pattern.compile('\\*?\\s*@description\\s+(.*?)(?=\\n|\\*|$)');
         Matcher descMatcher = descPattern.matcher(doc);
         return descMatcher.find() ? descMatcher.group(1).trim() : null;
     }
@@ -200,7 +201,7 @@ public with sharing class OpenAPIParser {
      */
     public static List<String> extractTags(String doc) {
         List<String> tags = new List<String>();
-        Pattern tagPattern = Pattern.compile('@tag\\s+(.*?)(?=\\n|$)');
+        Pattern tagPattern = Pattern.compile('\\*?\\s*@tag\\s+(.*?)(?=\\n|\\*|$)');
         Matcher tagMatcher = tagPattern.matcher(doc);
         while (tagMatcher.find()) {
             tags.add(tagMatcher.group(1).trim());
@@ -213,7 +214,7 @@ public with sharing class OpenAPIParser {
      */
     public static List<Map<String, List<String>>> extractSecurity(String doc) {
         List<Map<String, List<String>>> security = new List<Map<String, List<String>>>();
-        Pattern securityPattern = Pattern.compile('@security\\s+(\\w+)(?:\\s+(.*?))?(?=\\n|$)');
+        Pattern securityPattern = Pattern.compile('\\*?\\s*@security\\s+(\\w+)(?:\\s+(.*?))?(?=\\n|\\*|$)');
         Matcher securityMatcher = securityPattern.matcher(doc);
         while (securityMatcher.find()) {
             String scheme = securityMatcher.group(1);
@@ -235,7 +236,9 @@ public with sharing class OpenAPIParser {
      */
     public static Map<String, Object> extractResponses(String doc) {
         Map<String, Object> responses = new Map<String, Object>();
-        Pattern responsePattern = Pattern.compile('@response\\s+(\\d+)\\s+\\{(.*?)\\}(?=\\n|$)');
+        // Pattern handles both @response and * @response formats
+        // Use [\\s\\S] instead of . to match across lines (Apex doesn't support DOTALL)
+        Pattern responsePattern = Pattern.compile('\\*?\\s*@response\\s+(\\d+)\\s+\\{([^}]*)\\}(?=\\n|\\*|$)');
         Matcher responseMatcher = responsePattern.matcher(doc);
         
         while (responseMatcher.find()) {
@@ -253,6 +256,11 @@ public with sharing class OpenAPIParser {
                 String value = fieldMatcher.group(2) != null ? fieldMatcher.group(2) : 
                              (fieldMatcher.group(4) != null ? fieldMatcher.group(4) : fieldMatcher.group(6));
                 response.put(key, value);
+            }
+            
+            // Ensure description is present (required in OpenAPI)
+            if (!response.containsKey('description')) {
+                response.put('description', 'Response ' + code);
             }
             
             // If type is specified, add a schema reference
@@ -307,77 +315,91 @@ public with sharing class OpenAPIParser {
      */
     public static Map<String, Object> extractRequestBody(String doc) {
         Map<String, Object> requestBody = new Map<String, Object>();
-        Pattern requestBodyPattern = Pattern.compile('@requestBody\\s+\\{([^}]*)\\}(?=\\n|$)');
+        // Pattern to find @requestBody annotation (handles both @requestBody and * @requestBody formats)
+        Pattern requestBodyPattern = Pattern.compile('\\*?\\s*@requestBody\\s+\\{');
         Matcher requestBodyMatcher = requestBodyPattern.matcher(doc);
         
         if (requestBodyMatcher.find()) {
-            String requestBodyJson = requestBodyMatcher.group(1);
-            Map<String, Object> parsedJson = parseJsonLikeStructure(requestBodyJson);
-            
-            // Create the base request body structure
-            requestBody.put('required', true);
-            requestBody.put('description', parsedJson.get('description'));
-            
-            // Create the content structure
-            Map<String, Object> content = new Map<String, Object>();
-            Map<String, Object> jsonContent = new Map<String, Object>();
-            
-            // If type is specified, extract schema and use a reference
-            if (parsedJson.containsKey('type')) {
-                String typeName = (String)parsedJson.get('type');
-                System.debug('Request body schema type: ' + typeName);
-                
-                try {
-                    // Check if this is a nested class
-                    List<String> typeNameParts = typeName.split('\\.');
-                    boolean isNestedClass = (typeNameParts.size() == 2);
-                    
-                    Map<String, Object> extractedSchema;
-                    
-                    // Extract and register the schema if needed
-                    if (!schemaRegistry.containsKey(typeName)) {
-                        if (isNestedClass) {
-                            extractedSchema = extractNestedClassSchema(typeNameParts[0], typeNameParts[1]);
-                        } else {
-                            extractedSchema = extractClassSchema(typeName);
-                        }
-                        System.debug('Extracted schema for request body type ' + typeName + ': ' + (extractedSchema != null));
-                    }
-                    
-                    // Get a reference to the schema
-                    Map<String, Object> schemaRef = registerSchemaAndGetReference(typeName, schemaRegistry.get(typeName));
-                    
-                    jsonContent.put('schema', schemaRef);
-                    content.put('application/json', jsonContent);
-                    requestBody.put('content', content);
-                    
-                    System.debug('Added schema reference for ' + typeName + ' to request body');
-                    return requestBody;
-                } catch (Exception e) {
-                    System.debug('Error generating schema for type ' + typeName + ': ' + e.getMessage());
-                }
-            } else if (parsedJson.containsKey('content')) {
-                // If content is specified directly in the annotation, preserve it
-                Map<String, Object> contentJson = (Map<String, Object>)parsedJson.get('content');
-                if (contentJson.containsKey('application/json')) {
-                    Map<String, Object> jsonSchemaObj = (Map<String, Object>)((Map<String, Object>)contentJson.get('application/json')).get('schema');
-                    if (jsonSchemaObj != null) {
-                        jsonContent.put('schema', jsonSchemaObj);
-                        content.put('application/json', jsonContent);
-                        requestBody.put('content', content);
-                        return requestBody;
-                    }
-                }
+            // Extract content by counting braces to handle nested structures
+            Integer startPos = requestBodyMatcher.end();
+            Integer braceCount = 1;
+            Integer pos = startPos;
+            while (pos < doc.length() && braceCount > 0) {
+                String currentChar = doc.substring(pos, pos + 1);
+                if (currentChar == '{') braceCount++;
+                if (currentChar == '}') braceCount--;
+                pos++;
             }
             
-            // If we get here, create an empty schema
-            Map<String, Object> emptySchemaObj = new Map<String, Object>{
-                'type' => 'object',
-                'properties' => new Map<String, Object>()
-            };
-            jsonContent.put('schema', emptySchemaObj);
-            content.put('application/json', jsonContent);
-            requestBody.put('content', content);
+            if (braceCount == 0) {
+                String requestBodyJson = doc.substring(startPos, pos - 1);
+                Map<String, Object> parsedJson = parseJsonLikeStructure(requestBodyJson);
+                
+                // Create the base request body structure
+                requestBody.put('required', true);
+                requestBody.put('description', parsedJson.get('description'));
+                
+                // Create the content structure
+                Map<String, Object> content = new Map<String, Object>();
+                Map<String, Object> jsonContent = new Map<String, Object>();
+                
+                // If type is specified, extract schema and use a reference
+                if (parsedJson.containsKey('type')) {
+                    String typeName = (String)parsedJson.get('type');
+                    System.debug('Request body schema type: ' + typeName);
+                    
+                    try {
+                        // Check if this is a nested class
+                        List<String> typeNameParts = typeName.split('\\.');
+                        boolean isNestedClass = (typeNameParts.size() == 2);
+                        
+                        Map<String, Object> extractedSchema;
+                        
+                        // Extract and register the schema if needed
+                        if (!schemaRegistry.containsKey(typeName)) {
+                            if (isNestedClass) {
+                                extractedSchema = extractNestedClassSchema(typeNameParts[0], typeNameParts[1]);
+                            } else {
+                                extractedSchema = extractClassSchema(typeName);
+                            }
+                            System.debug('Extracted schema for request body type ' + typeName + ': ' + (extractedSchema != null));
+                        }
+                        
+                        // Get a reference to the schema
+                        Map<String, Object> schemaRef = registerSchemaAndGetReference(typeName, schemaRegistry.get(typeName));
+                        
+                        jsonContent.put('schema', schemaRef);
+                        content.put('application/json', jsonContent);
+                        requestBody.put('content', content);
+                        
+                        System.debug('Added schema reference for ' + typeName + ' to request body');
+                        return requestBody;
+                    } catch (Exception e) {
+                        System.debug('Error generating schema for type ' + typeName + ': ' + e.getMessage());
+                    }
+                } else if (parsedJson.containsKey('content')) {
+                    // If content is specified directly in the annotation, preserve it
+                    Map<String, Object> contentJson = (Map<String, Object>)parsedJson.get('content');
+                    if (contentJson.containsKey('application/json')) {
+                        Map<String, Object> jsonSchemaObj = (Map<String, Object>)((Map<String, Object>)contentJson.get('application/json')).get('schema');
+                        if (jsonSchemaObj != null) {
+                            jsonContent.put('schema', jsonSchemaObj);
+                            content.put('application/json', jsonContent);
+                            requestBody.put('content', content);
+                            return requestBody;
+                        }
+                    }
+                }
+                
+                // If we get here, create an empty schema
+                Map<String, Object> emptySchemaObj = new Map<String, Object>{
+                    'type' => 'object',
+                    'properties' => new Map<String, Object>()
+                };
+                jsonContent.put('schema', emptySchemaObj);
+                content.put('application/json', jsonContent);
+                requestBody.put('content', content);
+            }
         }
         
         return requestBody;
