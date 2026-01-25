@@ -138,8 +138,8 @@ public with sharing class OpenAPIParser {
      */
     public static List<Map<String, Object>> extractParameters(String doc) {
         List<Map<String, Object>> parameters = new List<Map<String, Object>>();
-        // Pattern handles both @param and * @param formats, with optional leading asterisk and spaces
-        Pattern paramPattern = Pattern.compile('\\*?\\s*@param\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(.*?)(?=\\n|\\*|$)');
+        // Pattern handles * @param format (most common in Apex docs)
+        Pattern paramPattern = Pattern.compile('\\*\\s*@param\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+([^\\n\\*]+?)(?=\\n|\\*|$)');
         Matcher paramMatcher = paramPattern.matcher(doc);
         while (paramMatcher.find()) {
             String paramName = paramMatcher.group(1);
@@ -173,27 +173,47 @@ public with sharing class OpenAPIParser {
      * Extract operation ID from method documentation
      */
     public static String extractOperationId(String doc) {
-        Pattern opPattern = Pattern.compile('\\*?\\s*@operation\\s+(\\w+)');
+        Pattern opPattern = Pattern.compile('\\*\\s*@operation\\s+(\\w+)');
         Matcher opMatcher = opPattern.matcher(doc);
-        return opMatcher.find() ? opMatcher.group(1) : null;
+        if (opMatcher.find()) {
+            return opMatcher.group(1);
+        }
+        // Fallback: try without the * prefix
+        Pattern opPattern2 = Pattern.compile('@operation\\s+(\\w+)');
+        Matcher opMatcher2 = opPattern2.matcher(doc);
+        return opMatcher2.find() ? opMatcher2.group(1) : null;
     }
     
     /**
      * Extract summary from method documentation
      */
     public static String extractSummary(String doc) {
-        Pattern summaryPattern = Pattern.compile('\\*?\\s*@summary\\s+(.*?)(?=\\n|\\*|$)');
+        // Pattern matches: optional * and spaces, @summary, then captures text until newline or next * or end
+        Pattern summaryPattern = Pattern.compile('\\*\\s*@summary\\s+([^\\n\\*]+?)(?=\\n|\\*|$)');
         Matcher summaryMatcher = summaryPattern.matcher(doc);
-        return summaryMatcher.find() ? summaryMatcher.group(1).trim() : null;
+        if (summaryMatcher.find()) {
+            return summaryMatcher.group(1).trim();
+        }
+        // Fallback: try without the * prefix
+        Pattern summaryPattern2 = Pattern.compile('@summary\\s+([^\\n\\*]+?)(?=\\n|\\*|$)');
+        Matcher summaryMatcher2 = summaryPattern2.matcher(doc);
+        return summaryMatcher2.find() ? summaryMatcher2.group(1).trim() : null;
     }
     
     /**
      * Extract description from method documentation
      */
     public static String extractDescription(String doc) {
-        Pattern descPattern = Pattern.compile('\\*?\\s*@description\\s+(.*?)(?=\\n|\\*|$)');
+        // Pattern matches: optional * and spaces, @description, then captures text until newline or next * or end
+        Pattern descPattern = Pattern.compile('\\*\\s*@description\\s+([^\\n\\*]+?)(?=\\n|\\*|$)');
         Matcher descMatcher = descPattern.matcher(doc);
-        return descMatcher.find() ? descMatcher.group(1).trim() : null;
+        if (descMatcher.find()) {
+            return descMatcher.group(1).trim();
+        }
+        // Fallback: try without the * prefix
+        Pattern descPattern2 = Pattern.compile('@description\\s+([^\\n\\*]+?)(?=\\n|\\*|$)');
+        Matcher descMatcher2 = descPattern2.matcher(doc);
+        return descMatcher2.find() ? descMatcher2.group(1).trim() : null;
     }
     
     /**
@@ -201,10 +221,19 @@ public with sharing class OpenAPIParser {
      */
     public static List<String> extractTags(String doc) {
         List<String> tags = new List<String>();
-        Pattern tagPattern = Pattern.compile('\\*?\\s*@tag\\s+(.*?)(?=\\n|\\*|$)');
+        // Pattern matches: optional * and spaces, @tag, then captures text until newline or next * or end
+        Pattern tagPattern = Pattern.compile('\\*\\s*@tag\\s+([^\\n\\*]+?)(?=\\n|\\*|$)');
         Matcher tagMatcher = tagPattern.matcher(doc);
         while (tagMatcher.find()) {
             tags.add(tagMatcher.group(1).trim());
+        }
+        // Fallback: try without the * prefix
+        if (tags.isEmpty()) {
+            Pattern tagPattern2 = Pattern.compile('@tag\\s+([^\\n\\*]+?)(?=\\n|\\*|$)');
+            Matcher tagMatcher2 = tagPattern2.matcher(doc);
+            while (tagMatcher2.find()) {
+                tags.add(tagMatcher2.group(1).trim());
+            }
         }
         return tags;
     }
@@ -214,7 +243,7 @@ public with sharing class OpenAPIParser {
      */
     public static List<Map<String, List<String>>> extractSecurity(String doc) {
         List<Map<String, List<String>>> security = new List<Map<String, List<String>>>();
-        Pattern securityPattern = Pattern.compile('\\*?\\s*@security\\s+(\\w+)(?:\\s+(.*?))?(?=\\n|\\*|$)');
+        Pattern securityPattern = Pattern.compile('\\*\\s*@security\\s+(\\w+)(?:\\s+([^\\n\\*]+?))?(?=\\n|\\*|$)');
         Matcher securityMatcher = securityPattern.matcher(doc);
         while (securityMatcher.find()) {
             String scheme = securityMatcher.group(1);
@@ -236,75 +265,93 @@ public with sharing class OpenAPIParser {
      */
     public static Map<String, Object> extractResponses(String doc) {
         Map<String, Object> responses = new Map<String, Object>();
-        // Pattern handles both @response and * @response formats
-        // Use [\\s\\S] instead of . to match across lines (Apex doesn't support DOTALL)
-        Pattern responsePattern = Pattern.compile('\\*?\\s*@response\\s+(\\d+)\\s+\\{([^}]*)\\}(?=\\n|\\*|$)');
+        // Pattern handles * @response format
+        // Match: * @response CODE {content}
+        // Use brace counting to handle nested braces in the content
+        Pattern responsePattern = Pattern.compile('\\*\\s*@response\\s+(\\d+)\\s+\\{');
         Matcher responseMatcher = responsePattern.matcher(doc);
         
-        while (responseMatcher.find()) {
+        // Find all response annotations and extract content by counting braces
+        Integer lastIndex = 0;
+        while (responseMatcher.find(lastIndex)) {
             String code = responseMatcher.group(1);
-            String responseJson = responseMatcher.group(2);
+            Integer startPos = responseMatcher.end();
+            Integer braceCount = 1;
+            Integer pos = startPos;
             
-            // Parse the JSON-like format into a Map
-            Map<String, Object> response = new Map<String, Object>();
-            Pattern fieldPattern = Pattern.compile('(\\w+):\\s*"([^"]*)"|(\\w+):\\s*\\{(.*?)\\}|(\\w+):\\s*(true|false)');
-            Matcher fieldMatcher = fieldPattern.matcher(responseJson);
-            
-            while (fieldMatcher.find()) {
-                String key = fieldMatcher.group(1) != null ? fieldMatcher.group(1) : 
-                           (fieldMatcher.group(3) != null ? fieldMatcher.group(3) : fieldMatcher.group(5));
-                String value = fieldMatcher.group(2) != null ? fieldMatcher.group(2) : 
-                             (fieldMatcher.group(4) != null ? fieldMatcher.group(4) : fieldMatcher.group(6));
-                response.put(key, value);
+            // Count braces to find the matching closing brace
+            while (pos < doc.length() && braceCount > 0) {
+                String currentChar = doc.substring(pos, pos + 1);
+                if (currentChar == '{') braceCount++;
+                if (currentChar == '}') braceCount--;
+                pos++;
             }
             
-            // Ensure description is present (required in OpenAPI)
-            if (!response.containsKey('description')) {
-                response.put('description', 'Response ' + code);
-            }
-            
-            // If type is specified, add a schema reference
-            if (response.containsKey('type')) {
-                String typeName = (String)response.get('type');
-                System.debug('Response schema type: ' + typeName);
+            if (braceCount == 0) {
+                String responseJson = doc.substring(startPos, pos - 1);
+                lastIndex = pos;
                 
-                try {
-                    // Check if this is a nested class
-                    List<String> typeNameParts = typeName.split('\\.');
-                    boolean isNestedClass = (typeNameParts.size() == 2);
-                    
-                    Map<String, Object> extractedSchema;
-                    
-                    // Extract and register the schema if needed
-                    if (!schemaRegistry.containsKey(typeName)) {
-                        if (isNestedClass) {
-                            extractedSchema = extractNestedClassSchema(typeNameParts[0], typeNameParts[1]);
-                        } else {
-                            extractedSchema = extractClassSchema(typeName);
-                        }
-                        System.debug('Extracted schema for response type ' + typeName + ': ' + (extractedSchema != null));
-                    }
-                    
-                    // Get a reference to the schema
-                    Map<String, Object> schemaRef = registerSchemaAndGetReference(typeName, schemaRegistry.get(typeName));
-                    
-                    // Add the schema reference to the response
-                    response.put('content', new Map<String, Object>{
-                        'application/json' => new Map<String, Object>{
-                            'schema' => schemaRef
-                        }
-                    });
-                    
-                    System.debug('Added schema reference for ' + typeName + ' to response ' + code);
-                } catch (Exception e) {
-                    System.debug('Error generating schema reference for type ' + typeName + ': ' + e.getMessage());
+                // Parse the JSON-like format into a Map
+                Map<String, Object> response = new Map<String, Object>();
+                Pattern fieldPattern = Pattern.compile('(\\w+):\\s*"([^"]*)"|(\\w+):\\s*\\{(.*?)\\}|(\\w+):\\s*(true|false)');
+                Matcher fieldMatcher = fieldPattern.matcher(responseJson);
+                
+                while (fieldMatcher.find()) {
+                    String key = fieldMatcher.group(1) != null ? fieldMatcher.group(1) : 
+                               (fieldMatcher.group(3) != null ? fieldMatcher.group(3) : fieldMatcher.group(5));
+                    String value = fieldMatcher.group(2) != null ? fieldMatcher.group(2) : 
+                                 (fieldMatcher.group(4) != null ? fieldMatcher.group(4) : fieldMatcher.group(6));
+                    response.put(key, value);
                 }
                 
-                // Remove type as it's not part of OpenAPI spec
-                response.remove('type');
+                // Ensure description is present (required in OpenAPI)
+                if (!response.containsKey('description')) {
+                    response.put('description', 'Response ' + code);
+                }
+                
+                // If type is specified, add a schema reference
+                if (response.containsKey('type')) {
+                    String typeName = (String)response.get('type');
+                    System.debug('Response schema type: ' + typeName);
+                    
+                    try {
+                        // Check if this is a nested class
+                        List<String> typeNameParts = typeName.split('\\.');
+                        boolean isNestedClass = (typeNameParts.size() == 2);
+                        
+                        Map<String, Object> extractedSchema;
+                        
+                        // Extract and register the schema if needed
+                        if (!schemaRegistry.containsKey(typeName)) {
+                            if (isNestedClass) {
+                                extractedSchema = extractNestedClassSchema(typeNameParts[0], typeNameParts[1]);
+                            } else {
+                                extractedSchema = extractClassSchema(typeName);
+                            }
+                            System.debug('Extracted schema for response type ' + typeName + ': ' + (extractedSchema != null));
+                        }
+                        
+                        // Get a reference to the schema
+                        Map<String, Object> schemaRef = registerSchemaAndGetReference(typeName, schemaRegistry.get(typeName));
+                        
+                        // Add the schema reference to the response
+                        response.put('content', new Map<String, Object>{
+                            'application/json' => new Map<String, Object>{
+                                'schema' => schemaRef
+                            }
+                        });
+                        
+                        System.debug('Added schema reference for ' + typeName + ' to response ' + code);
+                    } catch (Exception e) {
+                        System.debug('Error generating schema reference for type ' + typeName + ': ' + e.getMessage());
+                    }
+                    
+                    // Remove type as it's not part of OpenAPI spec
+                    response.remove('type');
+                }
+                
+                responses.put(code, response);
             }
-            
-            responses.put(code, response);
         }
         return responses;
     }
@@ -315,11 +362,19 @@ public with sharing class OpenAPIParser {
      */
     public static Map<String, Object> extractRequestBody(String doc) {
         Map<String, Object> requestBody = new Map<String, Object>();
-        // Pattern to find @requestBody annotation (handles both @requestBody and * @requestBody formats)
-        Pattern requestBodyPattern = Pattern.compile('\\*?\\s*@requestBody\\s+\\{');
+        // Pattern to find * @requestBody annotation
+        Pattern requestBodyPattern = Pattern.compile('\\*\\s*@requestBody\\s+\\{');
         Matcher requestBodyMatcher = requestBodyPattern.matcher(doc);
+        Boolean found = requestBodyMatcher.find();
         
-        if (requestBodyMatcher.find()) {
+        // Fallback: try without the * prefix
+        if (!found) {
+            Pattern requestBodyPattern2 = Pattern.compile('@requestBody\\s+\\{');
+            requestBodyMatcher = requestBodyPattern2.matcher(doc);
+            found = requestBodyMatcher.find();
+        }
+        
+        if (found) {
             // Extract content by counting braces to handle nested structures
             Integer startPos = requestBodyMatcher.end();
             Integer braceCount = 1;
@@ -437,7 +492,8 @@ public with sharing class OpenAPIParser {
             // Not an SObject, try Apex class
             List<ApexClass> classes = [SELECT Id, Body FROM ApexClass WHERE Name = :className LIMIT 1];
             if (!classes.isEmpty()) {
-                Map<String, Object> properties = extractPropertiesFromClassBody(classes[0].Body);
+                String fullClassBody = classes[0].Body;
+                Map<String, Object> properties = extractPropertiesFromClassBody(fullClassBody, fullClassBody, className);
                 if (!properties.isEmpty()) {
                     schemaObj.put('type', 'object');
                     schemaObj.put('properties', properties);
@@ -482,22 +538,35 @@ public with sharing class OpenAPIParser {
         if (!classes.isEmpty()) {
             String classBody = classes[0].Body;
             
-            // Find the inner class definition
-            Pattern innerClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + innerClassName + '\\s*\\{([^}]*?)\\}');
+            // Find the inner class definition - use brace counting to handle nested classes
+            Pattern innerClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + innerClassName + '\\s*\\{');
             Matcher innerClassMatcher = innerClassPattern.matcher(classBody);
             
             if (innerClassMatcher.find()) {
-                String innerClassBody = innerClassMatcher.group(1);
-                Map<String, Object> properties = extractPropertiesFromClassBody(innerClassBody);
-                if (!properties.isEmpty()) {
-                    schemaObj.put('type', 'object');
-                    schemaObj.put('properties', properties);
-                    
-                    // Register this nested class schema
-                    System.debug('Registering nested class schema for ' + fullClassName);
-                    schemaRegistry.put(fullClassName, schemaObj);
-                    
-                    return schemaObj;
+                Integer classStart = innerClassMatcher.end();
+                Integer braceCount = 1;
+                Integer pos = classStart;
+                while (pos < classBody.length() && braceCount > 0) {
+                    String currentChar = classBody.substring(pos, pos + 1);
+                    if (currentChar == '{') braceCount++;
+                    if (currentChar == '}') braceCount--;
+                    pos++;
+                }
+                
+                if (braceCount == 0) {
+                    String innerClassBody = classBody.substring(classStart, pos - 1);
+                    // Pass both the inner class body and the full class body so we can find other nested classes
+                    Map<String, Object> properties = extractPropertiesFromClassBody(innerClassBody, classBody, outerClassName);
+                    if (!properties.isEmpty()) {
+                        schemaObj.put('type', 'object');
+                        schemaObj.put('properties', properties);
+                        
+                        // Register this nested class schema
+                        System.debug('Registering nested class schema for ' + fullClassName);
+                        schemaRegistry.put(fullClassName, schemaObj);
+                        
+                        return schemaObj;
+                    }
                 }
             }
         }
@@ -731,25 +800,95 @@ public with sharing class OpenAPIParser {
     }
     
     public static Map<String, Object> extractPropertiesFromClassBody(String classBody) {
+        return extractPropertiesFromClassBody(classBody, null, null);
+    }
+    
+    public static Map<String, Object> extractPropertiesFromClassBody(String classBody, String fullClassBody, String outerClassName) {
         Map<String, Object> properties = new Map<String, Object>();
+        // Pattern to match property declarations: (public|global) Type fieldName;
         Pattern propertyPattern = Pattern.compile('(public|global)\\s+(\\w+)\\s+(\\w+)\\s*;');
         Matcher propertyMatcher = propertyPattern.matcher(classBody);
+        
+        // Use fullClassBody if provided, otherwise use classBody
+        String searchBody = (fullClassBody != null) ? fullClassBody : classBody;
         
         while (propertyMatcher.find()) {
             String fieldType = propertyMatcher.group(2);
             String fieldName = propertyMatcher.group(3);
             
-            // Convert Apex type to OpenAPI type
-            String openApiType = 'string';
+            // Check if this is a primitive type
+            String openApiType = null;
             if (fieldType.equalsIgnoreCase('Boolean')) {
                 openApiType = 'boolean';
             } else if (fieldType.equalsIgnoreCase('Integer') || fieldType.equalsIgnoreCase('Decimal') || fieldType.equalsIgnoreCase('Double')) {
                 openApiType = 'number';
+            } else if (fieldType.equalsIgnoreCase('String')) {
+                openApiType = 'string';
             }
             
-            properties.put(fieldName, new Map<String, Object>{
-                'type' => openApiType
-            });
+            if (openApiType != null) {
+                // It's a primitive type
+                properties.put(fieldName, new Map<String, Object>{
+                    'type' => openApiType
+                });
+            } else {
+                // It's a custom class - could be a nested class or external class
+                // Check if there's a nested class with this name in the search body
+                Pattern nestedClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + fieldType + '\\s*\\{');
+                Matcher nestedClassMatcher = nestedClassPattern.matcher(searchBody);
+                
+                if (nestedClassMatcher.find()) {
+                    // It's a nested class - extract it and create a schema reference
+                    String fullNestedClassName = (outerClassName != null) ? outerClassName + '.' + fieldType : fieldType;
+                    
+                    // Check if we've already registered this nested class
+                    if (schemaRegistry.containsKey(fullNestedClassName)) {
+                        // Use a reference
+                        properties.put(fieldName, new Map<String, Object>{
+                            '$ref' => '#/components/schemas/' + fullNestedClassName
+                        });
+                    } else {
+                        // Extract the nested class schema
+                        Integer classStart = nestedClassMatcher.end();
+                        Integer braceCount = 1;
+                        Integer pos = classStart;
+                        while (pos < searchBody.length() && braceCount > 0) {
+                            String currentChar = searchBody.substring(pos, pos + 1);
+                            if (currentChar == '{') braceCount++;
+                            if (currentChar == '}') braceCount--;
+                            pos++;
+                        }
+                        
+                        if (braceCount == 0) {
+                            String nestedClassBody = searchBody.substring(classStart, pos - 1);
+                            Map<String, Object> nestedProperties = extractPropertiesFromClassBody(nestedClassBody, searchBody, outerClassName);
+                            
+                            // Register the nested class schema
+                            Map<String, Object> nestedSchema = new Map<String, Object>{
+                                'type' => 'object',
+                                'properties' => nestedProperties
+                            };
+                            schemaRegistry.put(fullNestedClassName, nestedSchema);
+                            
+                            // Use a reference
+                            properties.put(fieldName, new Map<String, Object>{
+                                '$ref' => '#/components/schemas/' + fullNestedClassName
+                            });
+                        } else {
+                            // Couldn't parse, default to object
+                            properties.put(fieldName, new Map<String, Object>{
+                                'type' => 'object'
+                            });
+                        }
+                    }
+                } else {
+                    // It's an external class or we can't find the nested class
+                    // Default to object type
+                    properties.put(fieldName, new Map<String, Object>{
+                        'type' => 'object'
+                    });
+                }
+            }
         }
         
         return properties;

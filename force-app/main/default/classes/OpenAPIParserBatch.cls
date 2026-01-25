@@ -249,15 +249,17 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
         Matcher methodMatcher = methodPattern.matcher(classBody);
         
         while (methodMatcher.find()) {
-            // Extract just the documentation block (group 0 includes the method signature)
-            // We need to extract the doc block separately
-            String fullMatch = methodMatcher.group(0);
+            // Group 1 contains the content between /** and */
+            // Group 2 is the @HttpMethod annotation
+            // Group 3 is the method name
+            String docContent = methodMatcher.group(1);
             String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
             String methodName = methodMatcher.group(3);
             
-            // Extract just the documentation block (everything before the @HttpMethod)
-            Integer docEndIndex = fullMatch.indexOf('@' + methodMatcher.group(2));
-            String methodDoc = fullMatch.substring(0, docEndIndex).trim();
+            // The docContent is the raw content, but we need to ensure it includes the comment markers
+            // The extraction patterns expect lines with * prefix, so docContent should work as-is
+            // But let's make sure we have the full block by reconstructing it
+            String methodDoc = '/**\n' + docContent + '\n*/';
             
             // Extract path parameters
             List<Map<String, Object>> methodParams = OpenAPIParser.extractParameters(methodDoc);
