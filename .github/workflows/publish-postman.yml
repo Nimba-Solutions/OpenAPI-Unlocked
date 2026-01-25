@@ -1,0 +1,191 @@
+# Publish OpenAPI Specification to Postman
+#
+# This workflow converts an OpenAPI specification file to a Postman collection
+# and publishes it to your Postman workspace. It supports custom collection and
+# environment names that can differ from the source file names.
+#
+# ## Prerequisites
+#
+# 1. **Postman API Key**: Required to authenticate with Postman's API
+#    - Go to https://postman.com/settings/me/api-keys
+#    - Generate a new API key or use an existing one
+#    - Add it as a GitHub secret: `POSTMAN_API_KEY`
+#
+# 2. **Postman Workspace ID**: Required to specify which workspace to publish to
+#    - Go to your Postman workspace
+#    - The workspace ID is in the URL: `https://postman.com/workspace/[WORKSPACE_ID]/...`
+#    - Or use the Postman API: `GET https://api.getpostman.com/workspaces`
+#    - Add it as a GitHub secret: `POSTMAN_WORKSPACE_ID`
+#
+# ## Usage
+#
+# ### As a reusable workflow (workflow_call):
+#
+# ```yaml
+# jobs:
+#   publish:
+#     uses: ./.github/workflows/publish-postman.yml
+#     with:
+#       openapi_spec_file: "force-app/main/default/staticresources/OPENAPI_SPEC.json"
+#       collection_name: "My Custom API Name"
+#       environment_file: "docs/postman-environment.json"  # Optional
+#       environment_name: "Production Environment"         # Optional
+#     secrets:
+#       POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+# ```
+#
+# ### Manual dispatch (workflow_dispatch):
+#
+# 1. Go to Actions tab in GitHub
+# 2. Select "Publish OpenAPI Specification to Postman"
+# 3. Click "Run workflow"
+# 4. Fill in the inputs:
+#    - `openapi_spec_file`: Path to your OpenAPI JSON file
+#    - `collection_name`: Desired name in Postman (can differ from file name)
+#    - `environment_file`: (Optional) Path to Postman environment JSON file
+#    - `environment_name`: (Optional) Desired environment name
+#
+# ## Inputs
+#
+# - `openapi_spec_file` (required): Path to OpenAPI specification JSON file
+# - `collection_name` (required): Name for the Postman collection (can differ from file name)
+# - `environment_file` (optional): Path to Postman environment JSON file
+# - `environment_name` (optional): Name for the Postman environment (required if environment_file is provided)
+#
+# ## Secrets
+#
+# - `POSTMAN_API_KEY` (required): Your Postman API key
+# - `POSTMAN_WORKSPACE_ID` (required): Your Postman workspace ID
+#
+# ## Behavior
+#
+# - If a collection with the same name exists, it will be updated
+# - If a collection doesn't exist, a new one will be created
+# - Same behavior applies to environments
+# - The collection/environment name in Postman will match `collection_name`/`environment_name`,
+#   regardless of what's in the source files
+
+name: Publish OpenAPI Specification to Postman
+
+on:
+  workflow_call:
+    inputs:
+      openapi_spec_file:
+        required: true
+        type: string
+      collection_name:
+        required: true
+        type: string
+      environment_file:
+        required: false
+        type: string
+      environment_name:
+        required: false
+        type: string
+    secrets:
+      POSTMAN_API_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      openapi_spec_file:
+        description: "Path to OpenAPI spec JSON file"
+        required: true
+        type: string
+        default: "force-app/main/default/staticresources/OPENAPI_SPEC.json"
+      collection_name:
+        description: "Postman collection name (can differ from file name)"
+        required: true
+        type: string
+        default: "OpenAPI-Unlocked"
+      environment_file:
+        description: "Path to Postman environment JSON file (optional)"
+        required: false
+        type: string
+      environment_name:
+        description: "Postman environment name (optional, required if environment_file is provided)"
+        required: false
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install openapi-to-postman converter
+        run: npm install -g @postman/openapi-to-postman
+
+      - name: Convert OpenAPI to Postman Collection
+        run: |
+          # Convert OpenAPI spec to Postman collection format
+          openapi-to-postman "${{ inputs.openapi_spec_file }}" -o /tmp/postman-collection.json
+
+      - name: Publish Postman Collection
+        run: |
+          WORKSPACE_ID="${{ secrets.POSTMAN_WORKSPACE_ID }}"
+
+          # Update collection name in the converted Postman collection
+          COLLECTION_JSON=$(cat /tmp/postman-collection.json | jq ".info.name = \"${{ inputs.collection_name }}\"")
+
+          # Check if collection already exists
+          COLLECTION_UID=$(curl -s --request GET \
+            "https://api.getpostman.com/collections?workspace=$WORKSPACE_ID" \
+            --header "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" \
+            | jq -r ".collections[] | select(.name == \"${{ inputs.collection_name }}\") | .uid // empty")
+
+          if [ -n "$COLLECTION_UID" ]; then
+            echo "Updating existing collection: $COLLECTION_UID"
+            echo "{\"collection\": $COLLECTION_JSON}" | curl --location --request PUT \
+              "https://api.getpostman.com/collections/$COLLECTION_UID?workspace=$WORKSPACE_ID" \
+              --header "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" \
+              --header "Content-Type: application/json" \
+              --data @-
+          else
+            echo "Creating new collection"
+            echo "{\"collection\": $COLLECTION_JSON}" | curl --location --request POST \
+              "https://api.getpostman.com/collections?workspace=$WORKSPACE_ID" \
+              --header "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" \
+              --header "Content-Type: application/json" \
+              --data @-
+          fi
+
+      - name: Publish Postman Environment
+        if: ${{ inputs.environment_name != '' }}
+        run: |
+          WORKSPACE_ID="${{ secrets.POSTMAN_WORKSPACE_ID }}"
+
+          # Check if collection already exists
+          ENV_UID=$(curl -s --request GET \
+            "https://api.getpostman.com/environments?workspace=$WORKSPACE_ID" \
+            --header "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" \
+            | jq -r ".environments[] | select(.name == \"${{ inputs.environment_name }}\") | .uid // empty")
+
+          if [ -n "${{ inputs.environment_file }}" ]; then
+            # Use provided environment file
+            ENV_JSON=$(cat "${{ inputs.environment_file }}" | jq ".name = \"${{ inputs.environment_name }}\"")
+          else
+            # Create a basic environment
+            ENV_JSON=$(echo '{"name": "${{ inputs.environment_name }}", "values": []}' | jq ".name = \"${{ inputs.environment_name }}\"")
+          fi
+
+          if [ -n "$ENV_UID" ]; then
+            echo "Updating existing environment: $ENV_UID"
+            echo "{\"environment\": $ENV_JSON}" | curl --location --request PUT \
+              "https://api.getpostman.com/environments/$ENV_UID?workspace=$WORKSPACE_ID" \
+              --header "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" \
+              --header "Content-Type: application/json" \
+              --data @-
+          else
+            echo "Creating new environment"
+            echo "{\"environment\": $ENV_JSON}" | curl --location --request POST \
+              "https://api.getpostman.com/environments?workspace=$WORKSPACE_ID" \
+              --header "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" \
+              --header "Content-Type: application/json" \
+              --data @-
+          fi
