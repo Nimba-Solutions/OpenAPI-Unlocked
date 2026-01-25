@@ -51,6 +51,12 @@ tasks:
         group: "Dev/CI"
         description: Generates OpenAPI specification from Apex classes
         class_path: tasks.openapi_spec.GenerateOpenAPISpec
+
+    retrieve_spec:
+        group: "Dev/CI"
+        description: Retrieves the generated OpenAPI specification static resource
+        class_path: tasks.openapi_spec.RetrieveOpenAPISpec
+
     deploy_examples:
         group: "Dev/CI"
         description: Deploys example classes
@@ -131,6 +137,14 @@ flows:
                 task: deploy_experience_cloud
             3:
                 task: publish_experience
+
+    generate_and_retrieve_spec:
+        description: Generates and retrieves OpenAPI specification
+        steps:
+            1:
+                task: generate_spec
+            2:
+                task: retrieve_spec
 
 ### MetaDeploy Plans ##########################################################
 plans:
