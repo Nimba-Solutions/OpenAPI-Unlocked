@@ -589,9 +589,6 @@ public with sharing class OpenAPIParser {
         schemaRegistry.put(fullClassName, schemaObj);
         
         return schemaObj;
-        
-        System.debug(LoggingLevel.WARN, 'WARNING: Could not extract schema for nested class ' + fullClassName);
-        return schemaObj;
     }
     
     public static Map<String, Object> extractSObjectProperties(Schema.DescribeSObjectResult describe) {
