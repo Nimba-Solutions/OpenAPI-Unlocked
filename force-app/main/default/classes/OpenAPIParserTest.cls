@@ -405,7 +405,10 @@ private class OpenAPIParserTest {
         OpenAPIParser.storeAsStaticResource(spec, 'TEST_SPEC');
         Test.stopTest();
         
-        // Test passes if no exception is thrown
+        // Verify the queueable job was enqueued (may be completed by the time we check)
+        List<AsyncApexJob> jobs = [SELECT Id, Status, JobType FROM AsyncApexJob WHERE JobType = 'Queueable' ORDER BY CreatedDate DESC LIMIT 1];
+        System.assertNotEquals(0, jobs.size(), 'Queueable job should have been enqueued');
+        System.assert(jobs[0].Status == 'Queued' || jobs[0].Status == 'Completed', 'Job should be queued or completed');
     }
     
     @isTest
@@ -688,7 +691,12 @@ private class OpenAPIParserTest {
         OpenAPIParser.storeAsStaticResource(spec, 'TEST_SPEC_EXISTING');
         Test.stopTest();
         
-        // Test passes if no exception is thrown
+        // Verify both queueable jobs were enqueued
+        List<AsyncApexJob> jobs = [SELECT Id, Status, JobType FROM AsyncApexJob WHERE JobType = 'Queueable' ORDER BY CreatedDate DESC LIMIT 2];
+        System.assert(jobs.size() >= 2, 'At least 2 queueable jobs should have been enqueued');
+        for (AsyncApexJob job : jobs) {
+            System.assert(job.Status == 'Queued' || job.Status == 'Completed', 'Job should be queued or completed');
+        }
     }
 }
 
