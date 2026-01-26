@@ -19,12 +19,12 @@ public with sharing class OpenAPIParser {
      */
     public static Map<String, Object> parseClasses(String namespace) {
         // Always use batch processing to avoid governor limits
-        System.debug('Starting batch processing of Apex classes for OpenAPI documentation');
+        System.debug(LoggingLevel.FINE, 'Starting batch processing of Apex classes for OpenAPI documentation');
         Id batchJobId = Database.executeBatch(new OpenAPIParserBatch(namespace), 200);
         
-        System.debug('Batch job started with ID: ' + batchJobId);
-        System.debug('The OpenAPI specification will be generated asynchronously');
-        System.debug('When complete, it will be available as a Static Resource named "OPENAPI_SPEC"');
+        System.debug(LoggingLevel.FINE, 'Batch job started with ID: ' + batchJobId);
+        System.debug(LoggingLevel.FINE, 'The OpenAPI specification will be generated asynchronously');
+        System.debug(LoggingLevel.FINE, 'When complete, it will be available as a Static Resource named "OPENAPI_SPEC"');
         
         // Return an empty map since the actual processing happens asynchronously
         Map<String, Object> result = new Map<String, Object>{
@@ -116,10 +116,10 @@ public with sharing class OpenAPIParser {
         // Register only if not already registered
         if (!schemaRegistry.containsKey(typeName)) {
             // Debug message to track registration
-            System.debug('Registering schema for ' + typeName);
+            System.debug(LoggingLevel.FINE, 'Registering schema for ' + typeName);
             schemaRegistry.put(typeName, typeDefinition);
         } else {
-            System.debug('Schema already registered for ' + typeName);
+            System.debug(LoggingLevel.FINE, 'Schema already registered for ' + typeName);
         }
         
         // Return a reference
@@ -127,7 +127,7 @@ public with sharing class OpenAPIParser {
             '$ref' => '#/components/schemas/' + typeName
         };
         
-        System.debug('Created schema reference: ' + ref.get('$ref'));
+        System.debug(LoggingLevel.FINE, 'Created schema reference: ' + ref.get('$ref'));
         return ref;
     }
     
@@ -471,7 +471,7 @@ public with sharing class OpenAPIParser {
     public static Map<String, Object> extractClassSchema(String className) {
         // First check if this schema is already in the registry
         if (schemaRegistry.containsKey(className)) {
-            System.debug('Using previously registered schema for ' + className);
+            System.debug(LoggingLevel.FINE, 'Using previously registered schema for ' + className);
             return schemaRegistry.get(className);
         }
         
@@ -490,7 +490,7 @@ public with sharing class OpenAPIParser {
                     schemaObj.put('properties', properties);
                     
                     // Always register the schema
-                    System.debug('Registering SObject schema for ' + className);
+                    System.debug(LoggingLevel.FINE, 'Registering SObject schema for ' + className);
                     schemaRegistry.put(className, schemaObj);
                     
                     return schemaObj;
@@ -507,7 +507,7 @@ public with sharing class OpenAPIParser {
                     schemaObj.put('properties', properties);
                     
                     // Always register the schema
-                    System.debug('Registering Apex class schema for ' + className);
+                    System.debug(LoggingLevel.FINE, 'Registering Apex class schema for ' + className);
                     schemaRegistry.put(className, schemaObj);
                     
                     return schemaObj;
@@ -515,7 +515,7 @@ public with sharing class OpenAPIParser {
             }
         }
         
-        System.debug('WARNING: Could not extract schema for ' + className);
+        System.debug(LoggingLevel.WARN, 'WARNING: Could not extract schema for ' + className);
         
         // If we couldn't extract anything, create a minimal schema
         // This avoids broken references in the OpenAPI spec
@@ -692,7 +692,7 @@ public with sharing class OpenAPIParser {
         Matcher matcher = restResourcePattern.matcher(classBody);
         if (matcher.find()) {
             String urlMapping = matcher.group(1);
-            System.debug('Found REST resource URL mapping: ' + urlMapping);
+            System.debug(LoggingLevel.FINE, 'Found REST resource URL mapping: ' + urlMapping);
             // Remove trailing /* if present
             if (urlMapping.endsWith('/*')) {
                 urlMapping = urlMapping.substring(0, urlMapping.length() - 2);
