@@ -539,47 +539,56 @@ public with sharing class OpenAPIParser {
         
         // Find the outer class
         List<ApexClass> classes = [SELECT Id, Body FROM ApexClass WHERE Name = :outerClassName LIMIT 1];
-        if (!classes.isEmpty()) {
-            String classBody = classes[0].Body;
-            
-            // Find the inner class definition - use brace counting to handle nested classes
-            Pattern innerClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + innerClassName + '\\s*\\{');
-            Matcher innerClassMatcher = innerClassPattern.matcher(classBody);
-            
-            if (innerClassMatcher.find()) {
-                Integer classStart = innerClassMatcher.end();
-                Integer braceCount = 1;
-                Integer pos = classStart;
-                while (pos < classBody.length() && braceCount > 0) {
-                    String currentChar = classBody.substring(pos, pos + 1);
-                    if (currentChar == '{') {
-                        braceCount++;
-                    }
-                    if (currentChar == '}') {
-                        braceCount--;
-                    }
-                    pos++;
-                }
-                
-                if (braceCount == 0) {
-                    String innerClassBody = classBody.substring(classStart, pos - 1);
-                    // Pass both the inner class body and the full class body so we can find other nested classes
-                    Map<String, Object> properties = extractPropertiesFromClassBody(innerClassBody, classBody, outerClassName);
-                    if (properties.isEmpty()) {
-                        return schemaObj;
-                    }
-                    
-                    schemaObj.put('type', 'object');
-                    schemaObj.put('properties', properties);
-                    
-                    // Register this nested class schema
-                    System.debug(LoggingLevel.FINE, 'Registering nested class schema for ' + fullClassName);
-                    schemaRegistry.put(fullClassName, schemaObj);
-                    
-                    return schemaObj;
-                }
-            }
+        if (classes.isEmpty()) {
+            System.debug(LoggingLevel.WARN, 'WARNING: Could not extract schema for nested class ' + fullClassName);
+            return schemaObj;
         }
+        
+        String classBody = classes[0].Body;
+        
+        // Find the inner class definition - use brace counting to handle nested classes
+        Pattern innerClassPattern = Pattern.compile('(?:public|global|private|protected)?\\s+class\\s+' + innerClassName + '\\s*\\{');
+        Matcher innerClassMatcher = innerClassPattern.matcher(classBody);
+        
+        if (!innerClassMatcher.find()) {
+            System.debug(LoggingLevel.WARN, 'WARNING: Could not extract schema for nested class ' + fullClassName);
+            return schemaObj;
+        }
+        
+        Integer classStart = innerClassMatcher.end();
+        Integer braceCount = 1;
+        Integer pos = classStart;
+        while (pos < classBody.length() && braceCount > 0) {
+            String currentChar = classBody.substring(pos, pos + 1);
+            if (currentChar == '{') {
+                braceCount++;
+            }
+            if (currentChar == '}') {
+                braceCount--;
+            }
+            pos++;
+        }
+        
+        if (braceCount != 0) {
+            System.debug(LoggingLevel.WARN, 'WARNING: Could not extract schema for nested class ' + fullClassName);
+            return schemaObj;
+        }
+        
+        String innerClassBody = classBody.substring(classStart, pos - 1);
+        // Pass both the inner class body and the full class body so we can find other nested classes
+        Map<String, Object> properties = extractPropertiesFromClassBody(innerClassBody, classBody, outerClassName);
+        if (properties.isEmpty()) {
+            return schemaObj;
+        }
+        
+        schemaObj.put('type', 'object');
+        schemaObj.put('properties', properties);
+        
+        // Register this nested class schema
+        System.debug(LoggingLevel.FINE, 'Registering nested class schema for ' + fullClassName);
+        schemaRegistry.put(fullClassName, schemaObj);
+        
+        return schemaObj;
         
         System.debug(LoggingLevel.WARN, 'WARNING: Could not extract schema for nested class ' + fullClassName);
         return schemaObj;
