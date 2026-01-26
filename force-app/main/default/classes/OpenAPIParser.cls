@@ -282,8 +282,12 @@ public with sharing class OpenAPIParser {
             // Count braces to find the matching closing brace
             while (pos < doc.length() && braceCount > 0) {
                 String currentChar = doc.substring(pos, pos + 1);
-                if (currentChar == '{') braceCount++;
-                if (currentChar == '}') braceCount--;
+                if (currentChar == '{') {
+                    braceCount++;
+                }
+                if (currentChar == '}') {
+                    braceCount--;
+                }
                 pos++;
             }
             
@@ -312,7 +316,7 @@ public with sharing class OpenAPIParser {
                 // If type is specified, add a schema reference
                 if (response.containsKey('type')) {
                     String typeName = (String)response.get('type');
-                    System.debug('Response schema type: ' + typeName);
+                    System.debug(LoggingLevel.FINE, 'Response schema type: ' + typeName);
                     
                     try {
                         // Check if this is a nested class
@@ -328,7 +332,7 @@ public with sharing class OpenAPIParser {
                             } else {
                                 extractedSchema = extractClassSchema(typeName);
                             }
-                            System.debug('Extracted schema for response type ' + typeName + ': ' + (extractedSchema != null));
+                            System.debug(LoggingLevel.FINE, 'Extracted schema for response type ' + typeName + ': ' + (extractedSchema != null));
                         }
                         
                         // Get a reference to the schema
@@ -341,9 +345,9 @@ public with sharing class OpenAPIParser {
                             }
                         });
                         
-                        System.debug('Added schema reference for ' + typeName + ' to response ' + code);
+                        System.debug(LoggingLevel.FINE, 'Added schema reference for ' + typeName + ' to response ' + code);
                     } catch (Exception e) {
-                        System.debug('Error generating schema reference for type ' + typeName + ': ' + e.getMessage());
+                        System.debug(LoggingLevel.ERROR, 'Error generating schema reference for type ' + typeName + ': ' + e.getMessage());
                     }
                     
                     // Remove type as it's not part of OpenAPI spec
@@ -381,8 +385,12 @@ public with sharing class OpenAPIParser {
             Integer pos = startPos;
             while (pos < doc.length() && braceCount > 0) {
                 String currentChar = doc.substring(pos, pos + 1);
-                if (currentChar == '{') braceCount++;
-                if (currentChar == '}') braceCount--;
+                if (currentChar == '{') {
+                    braceCount++;
+                }
+                if (currentChar == '}') {
+                    braceCount--;
+                }
                 pos++;
             }
             
@@ -401,7 +409,7 @@ public with sharing class OpenAPIParser {
                 // If type is specified, extract schema and use a reference
                 if (parsedJson.containsKey('type')) {
                     String typeName = (String)parsedJson.get('type');
-                    System.debug('Request body schema type: ' + typeName);
+                    System.debug(LoggingLevel.FINE, 'Request body schema type: ' + typeName);
                     
                     try {
                         // Check if this is a nested class
@@ -417,7 +425,7 @@ public with sharing class OpenAPIParser {
                             } else {
                                 extractedSchema = extractClassSchema(typeName);
                             }
-                            System.debug('Extracted schema for request body type ' + typeName + ': ' + (extractedSchema != null));
+                            System.debug(LoggingLevel.FINE, 'Extracted schema for request body type ' + typeName + ': ' + (extractedSchema != null));
                         }
                         
                         // Get a reference to the schema
@@ -427,10 +435,10 @@ public with sharing class OpenAPIParser {
                         content.put('application/json', jsonContent);
                         requestBody.put('content', content);
                         
-                        System.debug('Added schema reference for ' + typeName + ' to request body');
+                        System.debug(LoggingLevel.FINE, 'Added schema reference for ' + typeName + ' to request body');
                         return requestBody;
                     } catch (Exception e) {
-                        System.debug('Error generating schema for type ' + typeName + ': ' + e.getMessage());
+                        System.debug(LoggingLevel.ERROR, 'Error generating schema for type ' + typeName + ': ' + e.getMessage());
                     }
                 } else if (parsedJson.containsKey('content')) {
                     // If content is specified directly in the annotation, preserve it
@@ -548,8 +556,12 @@ public with sharing class OpenAPIParser {
                 Integer pos = classStart;
                 while (pos < classBody.length() && braceCount > 0) {
                     String currentChar = classBody.substring(pos, pos + 1);
-                    if (currentChar == '{') braceCount++;
-                    if (currentChar == '}') braceCount--;
+                    if (currentChar == '{') {
+                        braceCount++;
+                    }
+                    if (currentChar == '}') {
+                        braceCount--;
+                    }
                     pos++;
                 }
                 
@@ -562,7 +574,7 @@ public with sharing class OpenAPIParser {
                         schemaObj.put('properties', properties);
                         
                         // Register this nested class schema
-                        System.debug('Registering nested class schema for ' + fullClassName);
+                        System.debug(LoggingLevel.FINE, 'Registering nested class schema for ' + fullClassName);
                         schemaRegistry.put(fullClassName, schemaObj);
                         
                         return schemaObj;
@@ -571,7 +583,7 @@ public with sharing class OpenAPIParser {
             }
         }
         
-        System.debug('WARNING: Could not extract schema for nested class ' + fullClassName);
+        System.debug(LoggingLevel.WARN, 'WARNING: Could not extract schema for nested class ' + fullClassName);
         return schemaObj;
     }
     
@@ -854,8 +866,12 @@ public with sharing class OpenAPIParser {
                         Integer pos = classStart;
                         while (pos < searchBody.length() && braceCount > 0) {
                             String currentChar = searchBody.substring(pos, pos + 1);
-                            if (currentChar == '{') braceCount++;
-                            if (currentChar == '}') braceCount--;
+                            if (currentChar == '{') {
+                                braceCount++;
+                            }
+                            if (currentChar == '}') {
+                                braceCount--;
+                            }
                             pos++;
                         }
                         
