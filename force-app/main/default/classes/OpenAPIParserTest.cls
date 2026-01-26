@@ -405,7 +405,10 @@ private class OpenAPIParserTest {
         OpenAPIParser.storeAsStaticResource(spec, 'TEST_SPEC');
         Test.stopTest();
         
-        // Test passes if no exception is thrown
+        // Verify the queueable job was enqueued (may be completed by the time we check)
+        List<AsyncApexJob> jobs = [SELECT Id, Status, JobType FROM AsyncApexJob WHERE JobType = 'Queueable' ORDER BY CreatedDate DESC LIMIT 1];
+        System.assertNotEquals(0, jobs.size(), 'Queueable job should have been enqueued');
+        System.assert(jobs[0].Status == 'Queued' || jobs[0].Status == 'Completed', 'Job should be queued or completed');
     }
     
     @isTest
@@ -422,6 +425,278 @@ private class OpenAPIParserTest {
         
         System.assertNotEquals(null, result);
         System.assertEquals(3, result.size());
+    }
+    
+    @isTest
+    static void testExtractPropertiesFromClassBodyWithFullBody() {
+        String classBody = 'public class TestClass {\n' +
+                          '    public String name;\n' +
+                          '    public NestedClass nested;\n' +
+                          '    public class NestedClass {\n' +
+                          '        public String value;\n' +
+                          '    }\n' +
+                          '}';
+        
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractPropertiesFromClassBody(classBody, classBody, 'TestClass');
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assert(result.size() >= 2);
+    }
+    
+    @isTest
+    static void testExtractPropertiesFromClassBodyWithDecimal() {
+        String classBody = 'public class TestClass {\n' +
+                          '    public Decimal amount;\n' +
+                          '    public Double price;\n' +
+                          '}';
+        
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractPropertiesFromClassBody(classBody);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assertEquals(2, result.size());
+    }
+    
+    @isTest
+    static void testExtractResponsesWithComplexStructure() {
+        String doc = '/**\n' +
+                    ' * @response 200 {description: "Success", type: "Account", content: {application/json: {schema: {type: "object"}}}}\n' +
+                    ' */';
+        
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractResponses(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+    }
+    
+    @isTest
+    static void testExtractRequestBodyWithComplexStructure() {
+        String doc = '/**\n' +
+                    ' * @requestBody {description: "Test data", type: "Account", content: {application/json: {schema: {type: "object"}}}}\n' +
+                    ' */';
+        
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractRequestBody(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+    }
+    
+    @isTest
+    static void testExtractRequestBodyWithDirectContent() {
+        String doc = '/**\n' +
+                    ' * @requestBody {content: {application/json: {schema: {type: "object", properties: {name: {type: "string"}}}}}}\n' +
+                    ' */';
+        
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractRequestBody(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+    }
+    
+    @isTest
+    static void testExtractClassSchemaWithNonExistentClass() {
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractClassSchema('NonExistentClass12345');
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assert(result.containsKey('type'));
+    }
+    
+    @isTest
+    static void testExtractNestedClassSchemaWithNonExistentClass() {
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractNestedClassSchema('NonExistentClass12345', 'NonExistentInner');
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+    }
+    
+    @isTest
+    static void testExtractNestedClassSchemaWithNonExistentOuter() {
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractNestedClassSchema('NonExistentOuter12345', 'TestResponse');
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+    }
+    
+    @isTest
+    static void testParseJsonLikeStructureWithNestedObjects() {
+        String json = 'description: "Test", nested: {value: "Nested", count: 42}';
+        
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.parseJsonLikeStructure(json);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assertEquals('Test', result.get('description'));
+    }
+    
+    @isTest
+    static void testGetOpenAPITypeWithAllTypes() {
+        Test.startTest();
+        String stringType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.STRING);
+        String numberType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.INTEGER);
+        String booleanType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.BOOLEAN);
+        String dateType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.DATE);
+        String datetimeType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.DATETIME);
+        String doubleType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.DOUBLE);
+        String currencyType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.CURRENCY);
+        String percentType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.PERCENT);
+        String emailType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.EMAIL);
+        String phoneType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.PHONE);
+        String urlType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.URL);
+        String textareaType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.TEXTAREA);
+        String picklistType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.PICKLIST);
+        String multipicklistType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.MULTIPICKLIST);
+        String referenceType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.REFERENCE);
+        String idType = OpenAPIParser.getOpenAPIType(Schema.DisplayType.ID);
+        Test.stopTest();
+        
+        System.assertEquals('string', stringType);
+        System.assertEquals('number', numberType);
+        System.assertEquals('boolean', booleanType);
+        System.assertEquals('string', dateType);
+        System.assertEquals('string', datetimeType);
+        System.assertEquals('number', doubleType);
+        System.assertEquals('number', currencyType);
+        System.assertEquals('number', percentType);
+        System.assertEquals('string', emailType);
+        System.assertEquals('string', phoneType);
+        System.assertEquals('string', urlType);
+        System.assertEquals('string', textareaType);
+        System.assertEquals('string', picklistType);
+        System.assertEquals('string', multipicklistType);
+        System.assertEquals('string', referenceType);
+        System.assertEquals('string', idType);
+    }
+    
+    @isTest
+    static void testExtractParametersWithAllTypes() {
+        String doc = '/**\n' +
+                    ' * @param id path String The record ID\n' +
+                    ' * @param name query String The name filter\n' +
+                    ' * @param count query Integer The count\n' +
+                    ' * @param active query Boolean Is active\n' +
+                    ' */';
+        
+        Test.startTest();
+        List<Map<String, Object>> result = OpenAPIParser.extractParameters(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assertEquals(4, result.size());
+    }
+    
+    @isTest
+    static void testExtractParametersWithMultilineDescription() {
+        String doc = '/**\n' +
+                    ' * @param id path String The record ID\n' +
+                    ' *   with more details\n' +
+                    ' *   and even more\n' +
+                    ' */';
+        
+        Test.startTest();
+        List<Map<String, Object>> result = OpenAPIParser.extractParameters(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assertEquals(1, result.size());
+    }
+    
+    @isTest
+    static void testExtractTagsWithMultipleTags() {
+        String doc = '/**\n' +
+                    ' * @tag Test\n' +
+                    ' * @tag API\n' +
+                    ' * @tag Integration\n' +
+                    ' */';
+        
+        Test.startTest();
+        List<String> result = OpenAPIParser.extractTags(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assertEquals(3, result.size());
+    }
+    
+    @isTest
+    static void testExtractSecurityWithMultipleSchemes() {
+        String doc = '/**\n' +
+                    ' * @security oauth2 read:test write:test\n' +
+                    ' * @security apiKey\n' +
+                    ' */';
+        
+        Test.startTest();
+        List<Map<String, List<String>>> result = OpenAPIParser.extractSecurity(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assert(result.size() >= 1);
+    }
+    
+    @isTest
+    static void testExtractResponsesWithMultipleCodes() {
+        String doc = '/**\n' +
+                    ' * @response 200 {description: "Success", type: "String"}\n' +
+                    ' * @response 400 {description: "Bad Request", type: "String"}\n' +
+                    ' * @response 404 {description: "Not Found", type: "String"}\n' +
+                    ' * @response 500 {description: "Server Error", type: "String"}\n' +
+                    ' */';
+        
+        Test.startTest();
+        Map<String, Object> result = OpenAPIParser.extractResponses(doc);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+        System.assert(result.size() >= 4);
+    }
+    
+    @isTest
+    static void testConstructApiPathPatch() {
+        String baseUrlMapping = '/test';
+        String httpMethod = 'patch';
+        String methodName = 'patchTest';
+        List<String> pathParams = new List<String>{'id'};
+        
+        Test.startTest();
+        String result = OpenAPIParser.constructApiPath(baseUrlMapping, httpMethod, methodName, pathParams);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, result);
+    }
+    
+    @isTest
+    static void testStoreAsStaticResourceWithExistingResource() {
+        Map<String, Object> spec = new Map<String, Object>{
+            'openapi' => '3.0.0',
+            'info' => new Map<String, Object>{
+                'title' => 'Test API',
+                'version' => '1.0.0'
+            }
+        };
+        
+        // Store first time
+        OpenAPIParser.storeAsStaticResource(spec, 'TEST_SPEC_EXISTING');
+        
+        Test.startTest();
+        // Store again - should update existing
+        OpenAPIParser.storeAsStaticResource(spec, 'TEST_SPEC_EXISTING');
+        Test.stopTest();
+        
+        // Verify both queueable jobs were enqueued
+        List<AsyncApexJob> jobs = [SELECT Id, Status, JobType FROM AsyncApexJob WHERE JobType = 'Queueable' ORDER BY CreatedDate DESC LIMIT 2];
+        System.assert(jobs.size() >= 2, 'At least 2 queueable jobs should have been enqueued');
+        for (AsyncApexJob job : jobs) {
+            System.assert(job.Status == 'Queued' || job.Status == 'Completed', 'Job should be queued or completed');
+        }
     }
 }
 
