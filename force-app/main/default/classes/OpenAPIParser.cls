@@ -327,11 +327,9 @@ public with sharing class OpenAPIParser {
                         
                         // Extract and register the schema if needed
                         if (!schemaRegistry.containsKey(typeName)) {
-                            if (isNestedClass) {
-                                extractedSchema = extractNestedClassSchema(typeNameParts[0], typeNameParts[1]);
-                            } else {
-                                extractedSchema = extractClassSchema(typeName);
-                            }
+                            extractedSchema = isNestedClass 
+                                ? extractNestedClassSchema(typeNameParts[0], typeNameParts[1])
+                                : extractClassSchema(typeName);
                             System.debug(LoggingLevel.FINE, 'Extracted schema for response type ' + typeName + ': ' + (extractedSchema != null));
                         }
                         
@@ -420,11 +418,9 @@ public with sharing class OpenAPIParser {
                         
                         // Extract and register the schema if needed
                         if (!schemaRegistry.containsKey(typeName)) {
-                            if (isNestedClass) {
-                                extractedSchema = extractNestedClassSchema(typeNameParts[0], typeNameParts[1]);
-                            } else {
-                                extractedSchema = extractClassSchema(typeName);
-                            }
+                            extractedSchema = isNestedClass 
+                                ? extractNestedClassSchema(typeNameParts[0], typeNameParts[1])
+                                : extractClassSchema(typeName);
                             System.debug(LoggingLevel.FINE, 'Extracted schema for request body type ' + typeName + ': ' + (extractedSchema != null));
                         }
                         
@@ -569,16 +565,18 @@ public with sharing class OpenAPIParser {
                     String innerClassBody = classBody.substring(classStart, pos - 1);
                     // Pass both the inner class body and the full class body so we can find other nested classes
                     Map<String, Object> properties = extractPropertiesFromClassBody(innerClassBody, classBody, outerClassName);
-                    if (!properties.isEmpty()) {
-                        schemaObj.put('type', 'object');
-                        schemaObj.put('properties', properties);
-                        
-                        // Register this nested class schema
-                        System.debug(LoggingLevel.FINE, 'Registering nested class schema for ' + fullClassName);
-                        schemaRegistry.put(fullClassName, schemaObj);
-                        
+                    if (properties.isEmpty()) {
                         return schemaObj;
                     }
+                    
+                    schemaObj.put('type', 'object');
+                    schemaObj.put('properties', properties);
+                    
+                    // Register this nested class schema
+                    System.debug(LoggingLevel.FINE, 'Registering nested class schema for ' + fullClassName);
+                    schemaRegistry.put(fullClassName, schemaObj);
+                    
+                    return schemaObj;
                 }
             }
         }
