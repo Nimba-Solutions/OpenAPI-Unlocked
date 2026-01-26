@@ -242,14 +242,24 @@ public class OpenAPIParserBatch implements Database.Batchable<SObject>, Database
         // Extract method-level OpenAPI annotations
         Map<String, Object> paths = new Map<String, Object>();
         
-        // Find all method documentation blocks
-        Pattern methodPattern = Pattern.compile('/\\*\\*\\s*\\n(\\s*\\*\\s*@[^\\n]*\\n)*\\s*\\*/\\s*\\n*\\s*@(Http\\w+)\\s+.*?\\s+(\\w+)\\s*\\([^)]*\\)');
+        // Find all method documentation blocks - improved pattern to capture full doc block
+        // Pattern matches: /** ... */ followed by @HttpMethod and method signature
+        // Use [\\s\\S] to match any character including newlines (Apex doesn't support DOTALL)
+        Pattern methodPattern = Pattern.compile('/\\*\\*([\\s\\S]*?)\\*/\\s*\\n\\s*@(Http\\w+)\\s+[\\s\\S]*?\\s+(\\w+)\\s*\\([^)]*\\)');
         Matcher methodMatcher = methodPattern.matcher(classBody);
         
         while (methodMatcher.find()) {
-            String methodDoc = methodMatcher.group(0);
+            // Group 1 contains the content between /** and */
+            // Group 2 is the @HttpMethod annotation
+            // Group 3 is the method name
+            String docContent = methodMatcher.group(1);
             String httpMethod = methodMatcher.group(2).toLowerCase().replace('http', '');
             String methodName = methodMatcher.group(3);
+            
+            // The docContent is the raw content, but we need to ensure it includes the comment markers
+            // The extraction patterns expect lines with * prefix, so docContent should work as-is
+            // But let's make sure we have the full block by reconstructing it
+            String methodDoc = '/**\n' + docContent + '\n*/';
             
             // Extract path parameters
             List<Map<String, Object>> methodParams = OpenAPIParser.extractParameters(methodDoc);
