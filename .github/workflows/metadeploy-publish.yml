@@ -1,0 +1,151 @@
+# Publish MetaDeploy Plans
+#
+# This workflow publishes MetaDeploy installation plans to your MetaDeploy instance.
+# It connects to MetaDeploy using the configured service credentials and publishes
+# the plans defined in cumulusci.yml.
+#
+# ## Prerequisites
+#
+# 1. **MetaDeploy Token**: Required to authenticate with MetaDeploy API
+#    - Generate a token from your MetaDeploy instance
+#    - Add it as a GitHub secret: `METADEPLOY_TOKEN`
+#
+# 2. **MetaDeploy URL**: The base URL of your MetaDeploy instance
+#    - Example: `https://metadeploy.example.com`
+#    - Add it as a GitHub secret: `METADEPLOY_URL`
+#
+# ## Usage
+#
+# ### Manual dispatch (workflow_dispatch):
+#
+# 1. Go to Actions tab in GitHub
+# 2. Select "Publish MetaDeploy Plans"
+# 3. Click "Run workflow"
+# 4. Optionally specify a git tag to publish (if not provided, uses latest release tag)
+# 5. The workflow will connect to MetaDeploy and publish all plans defined in cumulusci.yml
+#
+# ### Automatic trigger:
+#
+# The workflow automatically runs on pushes to `main` branch when relevant files change.
+# It will publish using the latest release tag (or commit SHA if no release tag exists).
+#
+# ## Inputs
+#
+# - `tag` (optional): Git tag name to publish. If not provided, uses the latest release tag (or commit SHA if no release tag exists).
+# - `plan` (optional): Name of a specific plan to publish. If not provided, all plans are published.
+# - `publish` (optional): If true, sets `is_listed=True` on the version. Default: false.
+#
+# ## Secrets
+#
+# - `METADEPLOY_TOKEN` (required): Your MetaDeploy API token
+# - `METADEPLOY_URL` (required): Your MetaDeploy instance URL
+
+name: Publish MetaDeploy Plans
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: false
+        type: string
+      plan:
+        required: false
+        type: string
+      publish:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      METADEPLOY_TOKEN:
+        required: true
+      METADEPLOY_URL:
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag name to publish (optional, defaults to latest release tag)"
+        required: false
+        type: string
+      plan:
+        description: "Specific plan name to publish (optional, defaults to all plans)"
+        required: false
+        type: string
+      publish:
+        description: "Set is_listed=True on the version (default: false)"
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches:
+      - main
+    paths:
+      - "cumulusci.yml"
+      - "force-app/**"
+      - ".github/workflows/metadeploy-publish.yml"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for tags
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CumulusCI
+        run: |
+          pip install --upgrade pip
+          pip install cumulusci
+
+      - name: Connect to MetaDeploy
+        run: |
+          cci service connect metadeploy --url "${{ secrets.METADEPLOY_URL }}" --token "${{ secrets.METADEPLOY_TOKEN }}"
+
+      - name: Publish MetaDeploy Plans
+        run: |
+          COMMIT_SHA="${{ github.sha }}"
+          TAG="${{ inputs.tag || '' }}"
+          PLAN="${{ inputs.plan || '' }}"
+          PUBLISH="${{ inputs.publish || 'false' }}"
+          
+          # If no tag specified, find the latest release tag
+          if [ -z "$TAG" ]; then
+            echo "No tag specified, finding latest release tag..."
+            LATEST_RELEASE_TAG=$(git tag -l "release/*" --sort=-version:refname | head -n 1)
+            if [ -n "$LATEST_RELEASE_TAG" ]; then
+              TAG="$LATEST_RELEASE_TAG"
+              echo "Using latest release tag: $TAG"
+            else
+              echo "No release tag found, using commit SHA: $COMMIT_SHA"
+            fi
+          else
+            echo "Using specified tag: $TAG"
+          fi
+          
+          # Build command with options
+          CMD="cci task run metadeploy_publish"
+          
+          if [ -n "$TAG" ]; then
+            CMD="$CMD --tag $TAG"
+          else
+            CMD="$CMD --commit $COMMIT_SHA"
+          fi
+          
+          if [ -n "$PLAN" ]; then
+            CMD="$CMD --plan $PLAN"
+          fi
+          
+          if [ "$PUBLISH" = "true" ]; then
+            CMD="$CMD --publish"
+          fi
+          
+          echo "Running: $CMD"
+          $CMD
+
+permissions:
+  contents: read

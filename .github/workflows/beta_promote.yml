@@ -16,6 +16,15 @@ jobs:
     with:
       cumulusci-version: "3.78.0"
 
+  publish-metadeploy:
+    needs: upload-prod
+    uses: ./.github/workflows/metadeploy-publish.yml
+    secrets:
+      METADEPLOY_TOKEN: ${{ secrets.METADEPLOY_TOKEN }}
+      METADEPLOY_URL: ${{ secrets.METADEPLOY_URL }}
+    with:
+      publish: true
+
 permissions:
   actions: write
   attestations: write
